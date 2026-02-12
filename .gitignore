@@ -1,0 +1,26 @@
+## Build outputs
+bin/
+obj/
+
+## .NET
+*.user
+*.suo
+*.cache
+*.vs/
+.vs/
+
+## NuGet
+*.nupkg
+packages/
+
+## IDE
+.idea/
+*.swp
+*~
+
+## OS
+Thumbs.db
+.DS_Store
+
+## Publish
+publish/

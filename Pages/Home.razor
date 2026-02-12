@@ -1,0 +1,285 @@
+@page "/"
+@using SixLabors.ImageSharp
+@using SixLabors.ImageSharp.Formats
+@using SixLabors.ImageSharp.Formats.Jpeg
+@using SixLabors.ImageSharp.Formats.Webp
+@inject IJSRuntime JS
+
+<PageTitle>图像格式转换</PageTitle>
+
+<MudText Typo="Typo.h4" GutterBottom="true">图像格式转换器</MudText>
+<MudText Typo="Typo.body1" Class="mb-4" Color="MudBlazor.Color.Secondary">
+    上传图像文件，选择目标格式，在浏览器内完成转换并下载。
+</MudText>
+
+<MudGrid>
+    @* 左栏：上传和预览 *@
+    <MudItem xs="12" md="7">
+        <MudPaper Class="pa-4" Elevation="2">
+            <MudText Typo="Typo.h6" GutterBottom="true">上传图像</MudText>
+
+            <MudFileUpload T="IBrowserFile"
+                           Accept="@AcceptExtensions"
+                           FilesChanged="OnFileSelected"
+                           MaximumFileCount="1">
+                <ActivatorContent>
+                    <MudPaper Outlined="true"
+                              Class="@GetDragClass()"
+                              Style="min-height: 200px; cursor: pointer;"
+                              @ondrop="ClearDragClass"
+                              @ondragenter="SetDragClass"
+                              @ondragleave="ClearDragClass"
+                              @ondragend="ClearDragClass">
+                        <MudIcon Icon="@Icons.Material.Filled.CloudUpload" Size="MudBlazor.Size.Large" Color="MudBlazor.Color.Primary" />
+                        <MudText Typo="Typo.body1">点击或拖拽图像文件到此处</MudText>
+                        <MudText Typo="Typo.caption" Color="MudBlazor.Color.Secondary">
+                            支持 @string.Join(", ", EncodableFormats.Select(f => f.Name))
+                        </MudText>
+                    </MudPaper>
+                </ActivatorContent>
+            </MudFileUpload>
+
+            @if (_imageLoaded)
+            {
+                <MudDivider Class="my-4" />
+                <MudText Typo="Typo.h6" GutterBottom="true">图像预览</MudText>
+
+                <MudStack Spacing="1" Class="mb-3">
+                    <MudText Typo="Typo.body2"><b>文件名：</b>@_fileName</MudText>
+                    <MudText Typo="Typo.body2"><b>原始格式：</b>@_sourceFormat</MudText>
+                    <MudText Typo="Typo.body2"><b>尺寸：</b>@(_imageWidth)x@(_imageHeight) px</MudText>
+                    <MudText Typo="Typo.body2"><b>文件大小：</b>@FormatFileSize(_fileSize)</MudText>
+                </MudStack>
+
+                <img src="@_previewDataUrl" alt="预览" class="image-preview" />
+            }
+        </MudPaper>
+    </MudItem>
+
+    @* 右栏：转换设置 *@
+    <MudItem xs="12" md="5">
+        <MudPaper Class="pa-4" Elevation="2">
+            <MudText Typo="Typo.h6" GutterBottom="true">转换设置</MudText>
+
+            <MudSelect T="string"
+                       Label="目标格式"
+                       @bind-Value="_targetFormat"
+                       Variant="Variant.Outlined"
+                       Class="mb-4"
+                       Disabled="@(!_imageLoaded)">
+                @foreach (var format in EncodableFormats)
+                {
+                    <MudSelectItem Value="@format.Name">@format.Name</MudSelectItem>
+                }
+            </MudSelect>
+
+            @if (_targetFormat is "JPEG")
+            {
+                <MudText Typo="Typo.body2" Class="mb-2">JPEG 质量：@_jpegQuality</MudText>
+                <MudSlider T="int" @bind-Value="_jpegQuality" Min="1" Max="100" Step="1" Color="MudBlazor.Color.Primary" Class="mb-4" />
+            }
+
+            @if (_targetFormat is "WebP")
+            {
+                <MudText Typo="Typo.body2" Class="mb-2">WebP 质量：@_webpQuality</MudText>
+                <MudSlider T="int" @bind-Value="_webpQuality" Min="1" Max="100" Step="1" Color="MudBlazor.Color.Primary" Class="mb-4" />
+            }
+
+            <MudButton Variant="Variant.Filled"
+                       Color="MudBlazor.Color.Primary"
+                       FullWidth="true"
+                       Size="MudBlazor.Size.Large"
+                       StartIcon="@Icons.Material.Filled.Transform"
+                       OnClick="ConvertImage"
+                       Disabled="@(!_imageLoaded || _converting)">
+                @if (_converting)
+                {
+                    <MudProgressCircular Size="MudBlazor.Size.Small" Indeterminate="true" Class="mr-2" />
+                    <span>转换中...</span>
+                }
+                else
+                {
+                    <span>转换并下载</span>
+                }
+            </MudButton>
+
+            @if (_convertedSize > 0)
+            {
+                <MudAlert Severity="Severity.Success" Class="mt-4">
+                    转换完成！输出大小：@FormatFileSize(_convertedSize)
+                </MudAlert>
+            }
+
+            @if (!string.IsNullOrEmpty(_errorMessage))
+            {
+                <MudAlert Severity="Severity.Error" Class="mt-4">
+                    @_errorMessage
+                </MudAlert>
+            }
+        </MudPaper>
+    </MudItem>
+</MudGrid>
+
+@code {
+    private const string DefaultDragClass = "rounded-lg border-2 border-dashed pa-4 d-flex flex-column align-center justify-center gap-2";
+
+    // 从 ImageSharp 配置中动态获取所有可编码格式
+    private static readonly IReadOnlyList<IImageFormat> EncodableFormats = Configuration.Default.ImageFormats
+        .Where(f =>
+        {
+            try { Configuration.Default.ImageFormatsManager.GetEncoder(f); return true; }
+            catch { return false; }
+        })
+        .OrderBy(f => f.Name)
+        .ToArray();
+
+    // 从所有格式的扩展名动态生成 Accept 字符串
+    private static readonly string AcceptExtensions = string.Join(",",
+        EncodableFormats.SelectMany(f => f.FileExtensions).Select(e => $".{e}"));
+
+    // 按 Name 索引格式，方便查找
+    private static readonly Dictionary<string, IImageFormat> FormatsByName =
+        EncodableFormats.ToDictionary(f => f.Name);
+
+    private bool _dragging;
+    private bool _imageLoaded;
+    private bool _converting;
+    private string _fileName = "";
+    private string _sourceFormat = "";
+    private int _imageWidth;
+    private int _imageHeight;
+    private long _fileSize;
+    private string _previewDataUrl = "";
+    private string _targetFormat = EncodableFormats.FirstOrDefault(f => f.Name == "PNG")?.Name
+                                   ?? EncodableFormats[0].Name;
+    private int _jpegQuality = 90;
+    private int _webpQuality = 80;
+    private long _convertedSize;
+    private string? _errorMessage;
+    private byte[]? _imageBytes;
+
+    private string GetDragClass() =>
+        _dragging ? $"{DefaultDragClass} mud-border-primary" : DefaultDragClass;
+
+    private IImageEncoder GetEncoder(IImageFormat format)
+    {
+        // JPEG 和 WebP 需要自定义质量参数，其他格式使用默认编码器
+        if (format is JpegFormat)
+            return new JpegEncoder { Quality = _jpegQuality };
+        if (format is WebpFormat)
+            return new WebpEncoder { Quality = _webpQuality };
+        return Configuration.Default.ImageFormatsManager.GetEncoder(format);
+    }
+
+    private async Task OnFileSelected(IBrowserFile file)
+    {
+        _errorMessage = null;
+        _convertedSize = 0;
+
+        try
+        {
+            _fileName = file.Name;
+            _fileSize = file.Size;
+
+            const long maxSize = 50 * 1024 * 1024;
+            await using var stream = file.OpenReadStream(maxSize);
+            using var ms = new MemoryStream();
+            await stream.CopyToAsync(ms);
+            _imageBytes = ms.ToArray();
+
+            using var image = SixLabors.ImageSharp.Image.Load(_imageBytes);
+            _imageWidth = image.Width;
+            _imageHeight = image.Height;
+            _sourceFormat = image.Metadata.DecodedImageFormat?.Name ?? "Unknown";
+
+            var previewMs = new MemoryStream();
+            await image.SaveAsPngAsync(previewMs);
+            var base64 = Convert.ToBase64String(previewMs.ToArray());
+            _previewDataUrl = $"data:image/png;base64,{base64}";
+
+            _imageLoaded = true;
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"加载图像失败：{ex.Message}";
+            _imageLoaded = false;
+        }
+
+        StateHasChanged();
+    }
+
+    private async Task ConvertImage()
+    {
+        if (_imageBytes == null || !FormatsByName.TryGetValue(_targetFormat, out var format))
+            return;
+
+        _converting = true;
+        _errorMessage = null;
+        _convertedSize = 0;
+        StateHasChanged();
+
+        try
+        {
+            var encoder = GetEncoder(format);
+
+            var result = await Task.Run(() =>
+            {
+                using var image = SixLabors.ImageSharp.Image.Load(_imageBytes);
+                using var outputStream = new MemoryStream();
+                image.Save(outputStream, encoder);
+                return outputStream.ToArray();
+            });
+
+            _convertedSize = result.Length;
+
+            var extension = "." + format.FileExtensions.First();
+            var outputFileName = Path.GetFileNameWithoutExtension(_fileName) + extension;
+            var mimeType = format.DefaultMimeType;
+
+            await DownloadFile(outputFileName, result, mimeType);
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"转换失败：{ex.Message}";
+        }
+        finally
+        {
+            _converting = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task DownloadFile(string fileName, byte[] data, string mimeType)
+    {
+        var base64 = Convert.ToBase64String(data);
+        await JS.InvokeVoidAsync("eval",
+            "(function() {" +
+            "var byteCharacters = atob('" + base64 + "');" +
+            "var byteNumbers = new Array(byteCharacters.length);" +
+            "for (var i = 0; i < byteCharacters.length; i++) {" +
+            "byteNumbers[i] = byteCharacters.charCodeAt(i);" +
+            "}" +
+            "var byteArray = new Uint8Array(byteNumbers);" +
+            "var blob = new Blob([byteArray], { type: '" + mimeType + "' });" +
+            "var url = URL.createObjectURL(blob);" +
+            "var a = document.createElement('a');" +
+            "a.href = url;" +
+            "a.download = '" + fileName + "';" +
+            "document.body.appendChild(a);" +
+            "a.click();" +
+            "document.body.removeChild(a);" +
+            "URL.revokeObjectURL(url);" +
+            "})();"
+        );
+    }
+
+    private static string FormatFileSize(long bytes)
+    {
+        if (bytes < 1024) return $"{bytes} B";
+        if (bytes < 1024 * 1024) return $"{bytes / 1024.0:F1} KB";
+        return $"{bytes / (1024.0 * 1024.0):F2} MB";
+    }
+
+    private void SetDragClass() => _dragging = true;
+    private void ClearDragClass() => _dragging = false;
+}
