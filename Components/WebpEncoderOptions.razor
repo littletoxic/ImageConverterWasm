@@ -1,0 +1,45 @@
+@using SixLabors.ImageSharp.Formats
+@using SixLabors.ImageSharp.Formats.Webp
+@attribute [FormatEncoder(typeof(WebpFormat))]
+@inherits EncoderOptionsBase
+
+<MudSwitch T="bool" Value="_lossless" ValueChanged="OnLosslessChanged"
+           Color="MudBlazor.Color.Primary" Class="mb-2"
+           Label="@(_lossless ? "无损模式（内存占用更高）" : "有损模式")" />
+
+<MudText Typo="Typo.body2" Class="mb-2">@(_lossless ? "压缩努力程度" : "WebP 质量")：@_quality</MudText>
+<MudSlider T="int" Value="_quality" ValueChanged="OnQualityChanged"
+           Min="0" Max="100" Step="1" Color="MudBlazor.Color.Primary" Class="mb-4" />
+
+@code {
+    private int _quality = 75;
+    private bool _lossless;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+            await NotifyOptionsChanged();
+    }
+
+    private async Task OnLosslessChanged(bool value)
+    {
+        _lossless = value;
+        await NotifyOptionsChanged();
+    }
+
+    private async Task OnQualityChanged(int value)
+    {
+        _quality = value;
+        await NotifyOptionsChanged();
+    }
+
+    public override IImageEncoder CreateEncoder() =>
+        new WebpEncoder
+        {
+            FileFormat = _lossless ? WebpFileFormatType.Lossless : WebpFileFormatType.Lossy,
+            Quality = _quality
+        };
+
+    public override long EstimateEncoderOverhead(long pixels) =>
+        _lossless ? pixels * 12 : pixels * 4;
+}

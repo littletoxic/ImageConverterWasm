@@ -1,0 +1,30 @@
+@using SixLabors.ImageSharp.Formats
+@using SixLabors.ImageSharp.Formats.Jpeg
+@attribute [FormatEncoder(typeof(JpegFormat))]
+@inherits EncoderOptionsBase
+
+<MudText Typo="Typo.body2" Class="mb-2">JPEG 质量：@_quality</MudText>
+<MudSlider T="int" Value="_quality" ValueChanged="OnQualityChanged"
+           Min="1" Max="100" Step="1" Color="MudBlazor.Color.Primary" Class="mb-4" />
+
+@code {
+    private int _quality = 90;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+            await NotifyOptionsChanged();
+    }
+
+    private async Task OnQualityChanged(int value)
+    {
+        _quality = value;
+        await NotifyOptionsChanged();
+    }
+
+    public override IImageEncoder CreateEncoder() =>
+        new JpegEncoder { Quality = _quality };
+
+    public override long EstimateEncoderOverhead(long pixels) =>
+        1 * 1024 * 1024;
+}
