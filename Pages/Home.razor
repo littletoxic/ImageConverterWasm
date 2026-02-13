@@ -169,17 +169,16 @@
     {
         try
         {
-            if (_jsModule is not null)
-            {
-                await using var previewStream = item.BrowserFile.OpenReadStream(MaxFileSize);
-                using var streamRef = new DotNetStreamReference(previewStream);
-                item.ThumbnailUrl = await _jsModule.InvokeAsync<string>(
-                    "createThumbnailUrl", streamRef);
-            }
+            await using var stream = item.BrowserFile.OpenReadStream(MaxFileSize);
+            using var ms = new MemoryStream();
+            await stream.CopyToAsync(ms);
+            var bytes = ms.ToArray();
+
+            item.ThumbnailUrl = $"data:{item.BrowserFile.ContentType};base64,{Convert.ToBase64String(bytes)}";
 
             item.Job = new LoadedImage(item.FileName, item.FileSize, _targetFormat);
-            await using var stream = item.BrowserFile.OpenReadStream(MaxFileSize);
-            await item.Job.LoadAsync(stream);
+            using var imageStream = new MemoryStream(bytes);
+            await item.Job.LoadAsync(imageStream);
             item.Status = ImageItemStatus.Pending;
         }
         catch (Exception ex)
@@ -297,21 +296,13 @@
     private void RemoveItem(ImageItem item)
     {
         _items.Remove(item);
-        if (item.ThumbnailUrl is not null && _jsModule is not null)
-        {
-            _ = _jsModule.InvokeVoidAsync("revokeThumbnailUrl", item.ThumbnailUrl);
-        }
         item.Dispose();
     }
 
     private void ClearAll()
     {
         foreach (var item in _items)
-        {
-            if (item.ThumbnailUrl is not null && _jsModule is not null)
-                _ = _jsModule.InvokeVoidAsync("revokeThumbnailUrl", item.ThumbnailUrl);
             item.Dispose();
-        }
         _items.Clear();
     }
 
