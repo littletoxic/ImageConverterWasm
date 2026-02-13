@@ -18,7 +18,7 @@ public sealed class ImageItem(IBrowserFile file) : IDisposable
     public string FileName => BrowserFile.Name;
     public long FileSize => BrowserFile.Size;
     public ImageItemStatus Status { get; set; } = ImageItemStatus.Loading;
-    public ImageConversionJob? Job { get; set; }
+    public LoadedImage? Job { get; set; }
     public ConversionResult? Result { get; set; }
     public string? ErrorMessage { get; set; }
     public string? ThumbnailUrl { get; set; }

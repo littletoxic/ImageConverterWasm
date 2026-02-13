@@ -177,7 +177,7 @@
                     "createThumbnailUrl", streamRef);
             }
 
-            item.Job = new ImageConversionJob(item.FileName, item.FileSize, _targetFormat);
+            item.Job = new LoadedImage(item.FileName, item.FileSize, _targetFormat);
             await using var stream = item.BrowserFile.OpenReadStream(MaxFileSize);
             await item.Job.LoadAsync(stream);
             item.Status = ImageItemStatus.Pending;

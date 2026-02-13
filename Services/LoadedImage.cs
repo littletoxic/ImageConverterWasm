@@ -4,7 +4,7 @@ using SixLabors.ImageSharp.Formats;
 
 namespace ImageConverter.Services;
 
-public sealed class ImageConversionJob(string fileName, long fileSize, IImageFormat targetFormat) : IDisposable
+public sealed class LoadedImage(string fileName, long fileSize, IImageFormat targetFormat) : IDisposable
 {
     private Image? _image;
 
