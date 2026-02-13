@@ -1,56 +1,338 @@
 @page "/"
+@using ImageConverter.Services
+@using ImageConverter.Components
+@using SixLabors.ImageSharp.Formats
+@using SixLabors.ImageSharp.Formats.Png
+@using Microsoft.AspNetCore.Components.Forms
+@using System.IO.Compression
+@implements IAsyncDisposable
+@inject IJSRuntime JS
+@inject ILogger<Home> Logger
 
 <PageTitle>图像格式转换</PageTitle>
 
 <MudText Typo="Typo.h4" GutterBottom="true">图像格式转换器</MudText>
 <MudText Typo="Typo.body1" Class="mb-4" Color="MudBlazor.Color.Secondary">
-    上传图像文件，选择目标格式，在浏览器内完成转换并下载。
+    上传图像文件，选择目标格式，一键批量转换并下载。所有处理均在浏览器内完成。
 </MudText>
 
-<MudPaper Class="pa-4" Elevation="2">
-    <MudText Typo="Typo.h6" GutterBottom="true">上传图像</MudText>
+@* === Upload Zone === *@
+<MudPaper Class="pa-4 mb-4" Elevation="2">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-2">
+        <MudText Typo="Typo.h6">上传图像</MudText>
+        <MudSpacer />
+        @if (_items.Count > 0)
+        {
+            <MudButton Variant="Variant.Text" Color="MudBlazor.Color.Error"
+                       StartIcon="@Icons.Material.Filled.DeleteSweep"
+                       OnClick="ClearAll">
+                清空全部
+            </MudButton>
+        }
+    </MudStack>
 
-    <MudFileUpload T="IBrowserFile"
+    <MudFileUpload T="IReadOnlyList<IBrowserFile>"
+                   AppendMultipleFiles
                    Accept="@ImageFormatInfo.AcceptExtensions"
-                   FilesChanged="OnFileSelected"
-                   MaximumFileCount="1">
+                   OnFilesChanged="OnFilesChanged"
+                   MaximumFileCount="100">
         <ActivatorContent>
             <MudPaper Outlined="true"
                       Class="@GetDragClass()"
-                      Style="min-height: 200px; cursor: pointer;"
+                      Style="min-height: 160px; cursor: pointer;"
                       @ondrop="ClearDragClass"
                       @ondragenter="SetDragClass"
                       @ondragleave="ClearDragClass"
                       @ondragend="ClearDragClass">
-                <MudIcon Icon="@Icons.Material.Filled.CloudUpload" Size="MudBlazor.Size.Large" Color="MudBlazor.Color.Primary" />
-                <MudText Typo="Typo.body1">点击或拖拽图像文件到此处</MudText>
+                <MudIcon Icon="@Icons.Material.Filled.CloudUpload"
+                         Size="MudBlazor.Size.Large" Color="MudBlazor.Color.Primary" />
+                <MudText Typo="Typo.body1">点击或拖拽图像文件到此处（支持多选）</MudText>
                 <MudText Typo="Typo.caption" Color="MudBlazor.Color.Secondary">
                     支持 @string.Join(", ", ImageFormatInfo.EncodableFormats.Select(f => f.Name))
                 </MudText>
             </MudPaper>
         </ActivatorContent>
     </MudFileUpload>
+
+    @if (_items.Count > 0)
+    {
+        <MudStack Row="true" Wrap="Wrap.Wrap" Class="mt-3" Spacing="1">
+            @foreach (var item in _items)
+            {
+                <MudChip T="string" Color="MudBlazor.Color.Default" Text="@item.FileName"
+                         OnClose="() => RemoveItem(item)" />
+            }
+        </MudStack>
+    }
 </MudPaper>
 
-@if (_file is not null)
+@* === Conversion Settings + Batch Actions + Image Grid === *@
+@if (_items.Count > 0)
 {
-    <ImageConversionCard @key="_file" File="_file" />
+    <ConversionSettings @ref="_settingsComponent"
+                        TargetFormat="_targetFormat"
+                        TargetFormatChanged="OnTargetFormatChanged"
+                        OptionsChanged="StateHasChanged"
+                        Class="mb-4" />
+
+    @* Batch Action Toolbar *@
+    <MudPaper Class="pa-3 mb-4" Elevation="1">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+            <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Transform"
+                       OnClick="ConvertAll"
+                       Disabled="@(_batchConverting || !HasConvertableItems)">
+                @if (_batchConverting)
+                {
+                    <MudProgressCircular Size="MudBlazor.Size.Small" Indeterminate="true" Class="mr-2" />
+                    <span>批量转换中 (@_convertedCount/@_totalToConvert)...</span>
+                }
+                else
+                {
+                    <span>全部转换</span>
+                }
+            </MudButton>
+            <MudButton Variant="Variant.Outlined" Color="MudBlazor.Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Download"
+                       OnClick="DownloadAll"
+                       Disabled="@(!HasDownloadableItems || _batchConverting)">
+                全部下载 (ZIP)
+            </MudButton>
+            <MudSpacer />
+            <MudText Typo="Typo.body2" Color="MudBlazor.Color.Secondary">
+                共 @_items.Count 张图像
+                @{
+                    var doneCount = _items.Count(i => i.Status == ImageItemStatus.Done);
+                }
+                @if (doneCount > 0)
+                {
+                    <span>，@doneCount 张已转换</span>
+                }
+            </MudText>
+        </MudStack>
+    </MudPaper>
+
+    @* Image Grid *@
+    <MudGrid Spacing="3">
+        @foreach (var item in _items)
+        {
+            <MudItem xs="12" sm="6" md="4" lg="3">
+                <ImageItemCard @key="item.Id"
+                               Item="item"
+                               OnConvert="ConvertSingle"
+                               OnDownload="DownloadSingle"
+                               OnRemove="RemoveItem" />
+            </MudItem>
+        }
+    </MudGrid>
 }
 
 @code {
-    private const string DefaultDragClass = "rounded-lg border-2 border-dashed pa-4 d-flex flex-column align-center justify-center gap-2";
+    private const string DefaultDragClass =
+        "rounded-lg border-2 border-dashed pa-4 d-flex flex-column align-center justify-center gap-2";
+    private const long MaxFileSize = 50 * 1024 * 1024;
 
     private bool _dragging;
-    private IBrowserFile? _file;
+    private readonly List<ImageItem> _items = new();
+    private IImageFormat _targetFormat = ImageFormatInfo.EncodableFormats
+        .FirstOrDefault(f => f is PngFormat)
+        ?? ImageFormatInfo.EncodableFormats[0];
+    private ConversionSettings? _settingsComponent;
+    private IJSObjectReference? _jsModule;
+    private bool _batchConverting;
+    private int _convertedCount;
+    private int _totalToConvert;
+
+    private bool HasConvertableItems =>
+        _items.Any(i => i.Status is ImageItemStatus.Pending or ImageItemStatus.Error);
+
+    private bool HasDownloadableItems =>
+        _items.Any(i => i.Status is ImageItemStatus.Done);
 
     private string GetDragClass() =>
         _dragging ? $"{DefaultDragClass} mud-border-primary" : DefaultDragClass;
 
-    private void OnFileSelected(IBrowserFile file)
-    {
-        _file = file;
-    }
-
     private void SetDragClass() => _dragging = true;
     private void ClearDragClass() => _dragging = false;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _jsModule = await JS.InvokeAsync<IJSObjectReference>(
+                "import", "./Pages/Home.razor.js");
+        }
+    }
+
+    private void OnFilesChanged(InputFileChangeEventArgs e)
+    {
+        ClearDragClass();
+        var newFiles = e.GetMultipleFiles(maximumFileCount: 100);
+        foreach (var file in newFiles)
+        {
+            var item = new ImageItem(file);
+            _items.Add(item);
+            _ = LoadItemAsync(item);
+        }
+    }
+
+    private async Task LoadItemAsync(ImageItem item)
+    {
+        try
+        {
+            if (_jsModule is not null)
+            {
+                await using var previewStream = item.BrowserFile.OpenReadStream(MaxFileSize);
+                using var streamRef = new DotNetStreamReference(previewStream);
+                item.ThumbnailUrl = await _jsModule.InvokeAsync<string>(
+                    "createThumbnailUrl", streamRef);
+            }
+
+            item.Job = new ImageConversionJob(item.FileName, item.FileSize, _targetFormat);
+            await using var stream = item.BrowserFile.OpenReadStream(MaxFileSize);
+            await item.Job.LoadAsync(stream);
+            item.Status = ImageItemStatus.Pending;
+        }
+        catch (Exception ex)
+        {
+            item.Status = ImageItemStatus.Error;
+            item.ErrorMessage = $"加载失败：{ex.Message}";
+            Logger.LogError(ex, "Failed to load {FileName}", item.FileName);
+        }
+        StateHasChanged();
+    }
+
+    private void OnTargetFormatChanged(IImageFormat format)
+    {
+        _targetFormat = format;
+        foreach (var item in _items)
+        {
+            if (item.Job is not null)
+                item.Job.TargetFormat = format;
+            if (item.Status == ImageItemStatus.Done)
+            {
+                item.Result?.Stream.Dispose();
+                item.Result = null;
+                item.Status = ImageItemStatus.Pending;
+            }
+        }
+    }
+
+    private async Task ConvertSingle(ImageItem item)
+    {
+        if (item.Job is not { IsLoaded: true }) return;
+
+        item.Status = ImageItemStatus.Converting;
+        item.ErrorMessage = null;
+        item.Result?.Stream.Dispose();
+        item.Result = null;
+        StateHasChanged();
+
+        try
+        {
+            item.Job.TargetFormat = _targetFormat;
+            var result = await item.Job.ConvertAsync(_settingsComponent?.EncoderOptions);
+            item.Result = result;
+            item.Status = ImageItemStatus.Done;
+        }
+        catch (OutOfMemoryException)
+        {
+            item.Status = ImageItemStatus.Error;
+            item.ErrorMessage = "内存不足，请尝试较小的图像。";
+            Logger.LogError("OutOfMemoryException during conversion: {FileName}", item.FileName);
+        }
+        catch (Exception ex)
+        {
+            item.Status = ImageItemStatus.Error;
+            item.ErrorMessage = $"转换失败：{ex.Message}";
+            Logger.LogError(ex, "Conversion failed for {FileName}", item.FileName);
+        }
+        StateHasChanged();
+    }
+
+    private async Task ConvertAll()
+    {
+        _batchConverting = true;
+        _convertedCount = 0;
+        _totalToConvert = _items.Count(i => i.Status is ImageItemStatus.Pending or ImageItemStatus.Error);
+        StateHasChanged();
+
+        foreach (var item in _items.ToList())
+        {
+            if (item.Status is ImageItemStatus.Pending or ImageItemStatus.Error)
+            {
+                await ConvertSingle(item);
+                _convertedCount++;
+                StateHasChanged();
+            }
+        }
+
+        _batchConverting = false;
+        StateHasChanged();
+    }
+
+    private async Task DownloadSingle(ImageItem item)
+    {
+        if (item.Result is null || _jsModule is null) return;
+        item.Result.Stream.Position = 0;
+        using var streamRef = new DotNetStreamReference(item.Result.Stream, leaveOpen: true);
+        await _jsModule.InvokeVoidAsync("downloadFileFromStream",
+            item.Result.OutputFileName, streamRef);
+    }
+
+    private async Task DownloadAll()
+    {
+        if (_jsModule is null) return;
+        var doneItems = _items
+            .Where(i => i.Status == ImageItemStatus.Done && i.Result is not null)
+            .ToList();
+        if (doneItems.Count == 0) return;
+
+        var zipStream = new MemoryStream();
+        using (var archive = new ZipArchive(zipStream, ZipArchiveMode.Create, leaveOpen: true))
+        {
+            foreach (var item in doneItems)
+            {
+                var entry = archive.CreateEntry(item.Result!.OutputFileName, CompressionLevel.Fastest);
+                await using var entryStream = entry.Open();
+                item.Result.Stream.Position = 0;
+                await item.Result.Stream.CopyToAsync(entryStream);
+            }
+        }
+
+        zipStream.Position = 0;
+        using var streamRef = new DotNetStreamReference(zipStream);
+        await _jsModule.InvokeVoidAsync("downloadFileFromStream", "converted-images.zip", streamRef);
+    }
+
+    private void RemoveItem(ImageItem item)
+    {
+        _items.Remove(item);
+        if (item.ThumbnailUrl is not null && _jsModule is not null)
+        {
+            _ = _jsModule.InvokeVoidAsync("revokeThumbnailUrl", item.ThumbnailUrl);
+        }
+        item.Dispose();
+    }
+
+    private void ClearAll()
+    {
+        foreach (var item in _items)
+        {
+            if (item.ThumbnailUrl is not null && _jsModule is not null)
+                _ = _jsModule.InvokeVoidAsync("revokeThumbnailUrl", item.ThumbnailUrl);
+            item.Dispose();
+        }
+        _items.Clear();
+    }
+
+    async ValueTask IAsyncDisposable.DisposeAsync()
+    {
+        foreach (var item in _items)
+            item.Dispose();
+        _items.Clear();
+
+        if (_jsModule is not null)
+            await _jsModule.DisposeAsync();
+    }
 }

@@ -1,0 +1,87 @@
+@using ImageConverter.Services
+
+<MudCard Elevation="2" Class="image-item-card">
+    <div class="image-item-thumbnail">
+        <img src="@(Item.ThumbnailUrl ?? "")" alt="@Item.FileName" />
+    </div>
+    <MudCardContent Class="pa-3 pb-1">
+        <MudTooltip Text="@Item.FileName">
+            <MudText Typo="Typo.body2" Class="text-truncate" Style="font-weight: 500;">
+                @Item.FileName
+            </MudText>
+        </MudTooltip>
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1" Class="mt-1">
+            <MudText Typo="Typo.caption" Color="MudBlazor.Color.Secondary">
+                @ImageFormatInfo.FormatFileSize(Item.FileSize)
+            </MudText>
+            @if (Item.Job is { IsLoaded: true })
+            {
+                <MudText Typo="Typo.caption" Color="MudBlazor.Color.Secondary">
+                    @(Item.Job.Width)x@(Item.Job.Height)
+                </MudText>
+            }
+        </MudStack>
+        @switch (Item.Status)
+        {
+            case ImageItemStatus.Loading:
+                <MudProgressLinear Indeterminate="true" Color="MudBlazor.Color.Primary" Class="mt-2" />
+                break;
+            case ImageItemStatus.Pending:
+                <MudChip T="string" Size="MudBlazor.Size.Small" Color="MudBlazor.Color.Info"
+                         Class="mt-2">待转换</MudChip>
+                break;
+            case ImageItemStatus.Converting:
+                <MudChip T="string" Size="MudBlazor.Size.Small" Color="MudBlazor.Color.Warning"
+                         Class="mt-2">
+                    <MudProgressCircular Size="MudBlazor.Size.Small" Indeterminate="true"
+                                         Class="mr-1" Style="width:14px;height:14px;" />
+                    转换中
+                </MudChip>
+                break;
+            case ImageItemStatus.Done:
+                <MudChip T="string" Size="MudBlazor.Size.Small" Color="MudBlazor.Color.Success"
+                         Class="mt-2">
+                    已完成 (@ImageFormatInfo.FormatFileSize(Item.Result?.Size ?? 0))
+                </MudChip>
+                break;
+            case ImageItemStatus.Error:
+                <MudTooltip Text="@Item.ErrorMessage">
+                    <MudChip T="string" Size="MudBlazor.Size.Small" Color="MudBlazor.Color.Error"
+                             Class="mt-2">
+                        错误
+                    </MudChip>
+                </MudTooltip>
+                break;
+        }
+    </MudCardContent>
+    <MudCardActions Class="pa-2 pt-0">
+        <MudTooltip Text="转换">
+            <MudIconButton Icon="@Icons.Material.Filled.Transform"
+                           Color="MudBlazor.Color.Primary"
+                           Size="MudBlazor.Size.Small"
+                           Disabled="@(Item.Status is not ImageItemStatus.Pending and not ImageItemStatus.Done and not ImageItemStatus.Error)"
+                           OnClick="() => OnConvert.InvokeAsync(Item)" />
+        </MudTooltip>
+        <MudTooltip Text="下载">
+            <MudIconButton Icon="@Icons.Material.Filled.Download"
+                           Color="MudBlazor.Color.Primary"
+                           Size="MudBlazor.Size.Small"
+                           Disabled="@(Item.Status is not ImageItemStatus.Done)"
+                           OnClick="() => OnDownload.InvokeAsync(Item)" />
+        </MudTooltip>
+        <MudSpacer />
+        <MudTooltip Text="移除">
+            <MudIconButton Icon="@Icons.Material.Filled.Close"
+                           Color="MudBlazor.Color.Error"
+                           Size="MudBlazor.Size.Small"
+                           OnClick="() => OnRemove.InvokeAsync(Item)" />
+        </MudTooltip>
+    </MudCardActions>
+</MudCard>
+
+@code {
+    [Parameter, EditorRequired] public ImageItem Item { get; set; } = default!;
+    [Parameter] public EventCallback<ImageItem> OnConvert { get; set; }
+    [Parameter] public EventCallback<ImageItem> OnDownload { get; set; }
+    [Parameter] public EventCallback<ImageItem> OnRemove { get; set; }
+}

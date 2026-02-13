@@ -1,0 +1,55 @@
+@using ImageConverter.Services
+@using SixLabors.ImageSharp.Formats
+
+<MudPaper Class="@($"pa-4 {Class}")" Elevation="2">
+    <MudText Typo="Typo.h6" GutterBottom="true">转换设置</MudText>
+
+    <MudSelect T="IImageFormat"
+               Label="目标格式"
+               Value="TargetFormat"
+               ValueChanged="OnTargetFormatChanged"
+               Variant="Variant.Outlined"
+               Class="mb-4">
+        @foreach (var format in ImageFormatInfo.EncodableFormats)
+        {
+            <MudSelectItem Value="@format">@format.Name</MudSelectItem>
+        }
+    </MudSelect>
+
+    @{
+        var componentType = EncoderOptionsBase.GetComponentType(TargetFormat);
+    }
+    @if (componentType is not null)
+    {
+        <DynamicComponent Type="componentType" Parameters="_encoderOptionsParams"
+                          @ref="_dynamicComponent" />
+    }
+</MudPaper>
+
+@code {
+    [Parameter] public IImageFormat TargetFormat { get; set; } = default!;
+    [Parameter] public EventCallback<IImageFormat> TargetFormatChanged { get; set; }
+    [Parameter] public EventCallback OptionsChanged { get; set; }
+    [Parameter] public string? Class { get; set; }
+
+    private DynamicComponent? _dynamicComponent;
+    private Dictionary<string, object>? _encoderOptionsParams;
+
+    public EncoderOptionsBase? EncoderOptions =>
+        _dynamicComponent?.Instance as EncoderOptionsBase;
+
+    protected override void OnInitialized()
+    {
+        _encoderOptionsParams = new Dictionary<string, object>
+        {
+            [nameof(EncoderOptionsBase.OptionsChanged)] =
+                EventCallback.Factory.Create(this, () => OptionsChanged.InvokeAsync()),
+        };
+    }
+
+    private async Task OnTargetFormatChanged(IImageFormat format)
+    {
+        TargetFormat = format;
+        await TargetFormatChanged.InvokeAsync(format);
+    }
+}
