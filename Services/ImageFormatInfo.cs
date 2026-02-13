@@ -5,14 +5,13 @@ namespace ImageConverter.Services;
 
 public static class ImageFormatInfo
 {
-    public static IReadOnlyList<IImageFormat> EncodableFormats { get; } = Configuration.Default.ImageFormats
+    public static IReadOnlyList<IImageFormat> EncodableFormats { get; } = [.. Configuration.Default.ImageFormats
         .Where(f =>
         {
             try { Configuration.Default.ImageFormatsManager.GetEncoder(f); return true; }
             catch { return false; }
         })
-        .OrderBy(f => f.Name)
-        .ToArray();
+        .OrderBy(f => f.Name)];
 
     public static string AcceptExtensions { get; } = string.Join(",",
         EncodableFormats.SelectMany(f => f.FileExtensions).Select(e => $".{e}"));

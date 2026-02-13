@@ -53,17 +53,6 @@
             </MudPaper>
         </ActivatorContent>
     </MudFileUpload>
-
-    @if (_items.Count > 0)
-    {
-        <MudStack Row="true" Wrap="Wrap.Wrap" Class="mt-3" Spacing="1">
-            @foreach (var item in _items)
-            {
-                <MudChip T="string" Color="MudBlazor.Color.Default" Text="@item.FileName"
-                         OnClose="() => RemoveItem(item)" />
-            }
-        </MudStack>
-    }
 </MudPaper>
 
 @* === Conversion Settings + Batch Actions + Image Grid === *@

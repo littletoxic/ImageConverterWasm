@@ -4,24 +4,17 @@ using SixLabors.ImageSharp.Formats;
 
 namespace ImageConverter.Services;
 
-public sealed class ImageConversionJob : IDisposable
+public sealed class ImageConversionJob(string fileName, long fileSize, IImageFormat targetFormat) : IDisposable
 {
     private Image? _image;
 
-    public string FileName { get; }
-    public long FileSize { get; }
+    public string FileName { get; } = fileName;
+    public long FileSize { get; } = fileSize;
     public int Width => _image?.Width ?? 0;
     public int Height => _image?.Height ?? 0;
     public string SourceFormat => _image?.Metadata.DecodedImageFormat?.Name ?? "";
     public bool IsLoaded => _image is not null;
-    public IImageFormat TargetFormat { get; set; }
-
-    public ImageConversionJob(string fileName, long fileSize, IImageFormat targetFormat)
-    {
-        FileName = fileName;
-        FileSize = fileSize;
-        TargetFormat = targetFormat;
-    }
+    public IImageFormat TargetFormat { get; set; } = targetFormat;
 
     public async Task LoadAsync(Stream stream)
     {

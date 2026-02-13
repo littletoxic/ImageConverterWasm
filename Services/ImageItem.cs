@@ -11,10 +11,10 @@ public enum ImageItemStatus
     Error
 }
 
-public sealed class ImageItem : IDisposable
+public sealed class ImageItem(IBrowserFile file) : IDisposable
 {
     public Guid Id { get; } = Guid.NewGuid();
-    public IBrowserFile BrowserFile { get; }
+    public IBrowserFile BrowserFile { get; } = file;
     public string FileName => BrowserFile.Name;
     public long FileSize => BrowserFile.Size;
     public ImageItemStatus Status { get; set; } = ImageItemStatus.Loading;
@@ -22,11 +22,6 @@ public sealed class ImageItem : IDisposable
     public ConversionResult? Result { get; set; }
     public string? ErrorMessage { get; set; }
     public string? ThumbnailUrl { get; set; }
-
-    public ImageItem(IBrowserFile file)
-    {
-        BrowserFile = file;
-    }
 
     public void Dispose()
     {
