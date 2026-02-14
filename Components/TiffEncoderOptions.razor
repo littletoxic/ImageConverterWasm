@@ -1,0 +1,83 @@
+@using SixLabors.ImageSharp.Formats
+@using SixLabors.ImageSharp.Formats.Tiff
+@using SixLabors.ImageSharp.Formats.Tiff.Constants
+@attribute [FormatEncoder(typeof(TiffFormat))]
+@inherits EncoderOptionsBase
+
+<MudSelect T="TiffCompression?" Value="_compression" ValueChanged="OnCompressionChanged"
+           Label="压缩方式" Variant="Variant.Outlined" Class="mb-4">
+    <MudSelectItem T="TiffCompression?" Value="@((TiffCompression?)null)">自动</MudSelectItem>
+    <MudSelectItem T="TiffCompression?" Value="TiffCompression.None">无压缩</MudSelectItem>
+    <MudSelectItem T="TiffCompression?" Value="TiffCompression.Lzw">LZW</MudSelectItem>
+    <MudSelectItem T="TiffCompression?" Value="TiffCompression.Deflate">Deflate</MudSelectItem>
+    <MudSelectItem T="TiffCompression?" Value="TiffCompression.Jpeg">JPEG</MudSelectItem>
+</MudSelect>
+
+<MudExpansionPanels Elevation="0" Class="mb-2">
+    <MudExpansionPanel Text="高级选项">
+        <MudSelect T="TiffBitsPerPixel?" Value="_bitsPerPixel" ValueChanged="OnBitsPerPixelChanged"
+                   Label="位深度" Variant="Variant.Outlined" Class="mb-4">
+            <MudSelectItem T="TiffBitsPerPixel?" Value="@((TiffBitsPerPixel?)null)">自动</MudSelectItem>
+            <MudSelectItem T="TiffBitsPerPixel?" Value="TiffBitsPerPixel.Bit1">1 位</MudSelectItem>
+            <MudSelectItem T="TiffBitsPerPixel?" Value="TiffBitsPerPixel.Bit8">8 位</MudSelectItem>
+            <MudSelectItem T="TiffBitsPerPixel?" Value="TiffBitsPerPixel.Bit24">24 位</MudSelectItem>
+            <MudSelectItem T="TiffBitsPerPixel?" Value="TiffBitsPerPixel.Bit32">32 位</MudSelectItem>
+        </MudSelect>
+
+        <MudSelect T="TiffPhotometricInterpretation?" Value="_photometric" ValueChanged="OnPhotometricChanged"
+                   Label="色彩解释" Variant="Variant.Outlined" Class="mb-4">
+            <MudSelectItem T="TiffPhotometricInterpretation?" Value="@((TiffPhotometricInterpretation?)null)">自动</MudSelectItem>
+            <MudSelectItem T="TiffPhotometricInterpretation?" Value="TiffPhotometricInterpretation.BlackIsZero">灰度</MudSelectItem>
+            <MudSelectItem T="TiffPhotometricInterpretation?" Value="TiffPhotometricInterpretation.Rgb">RGB</MudSelectItem>
+            <MudSelectItem T="TiffPhotometricInterpretation?" Value="TiffPhotometricInterpretation.PaletteColor">调色板</MudSelectItem>
+            <MudSelectItem T="TiffPhotometricInterpretation?" Value="TiffPhotometricInterpretation.YCbCr">YCbCr</MudSelectItem>
+        </MudSelect>
+
+        <MudSelect T="TiffPredictor?" Value="_predictor" ValueChanged="OnPredictorChanged"
+                   Label="水平预测" Variant="Variant.Outlined" Class="mb-4">
+            <MudSelectItem T="TiffPredictor?" Value="@((TiffPredictor?)null)">自动</MudSelectItem>
+            <MudSelectItem T="TiffPredictor?" Value="TiffPredictor.None">无</MudSelectItem>
+            <MudSelectItem T="TiffPredictor?" Value="TiffPredictor.Horizontal">水平</MudSelectItem>
+        </MudSelect>
+    </MudExpansionPanel>
+</MudExpansionPanels>
+
+@code {
+    private TiffCompression? _compression;
+    private TiffBitsPerPixel? _bitsPerPixel;
+    private TiffPhotometricInterpretation? _photometric;
+    private TiffPredictor? _predictor;
+
+    private async Task OnCompressionChanged(TiffCompression? value)
+    {
+        _compression = value;
+        await NotifyEncoderChanged();
+    }
+
+    private async Task OnBitsPerPixelChanged(TiffBitsPerPixel? value)
+    {
+        _bitsPerPixel = value;
+        await NotifyEncoderChanged();
+    }
+
+    private async Task OnPhotometricChanged(TiffPhotometricInterpretation? value)
+    {
+        _photometric = value;
+        await NotifyEncoderChanged();
+    }
+
+    private async Task OnPredictorChanged(TiffPredictor? value)
+    {
+        _predictor = value;
+        await NotifyEncoderChanged();
+    }
+
+    protected override IImageEncoder BuildEncoder() =>
+        new TiffEncoder
+        {
+            Compression = _compression,
+            BitsPerPixel = _bitsPerPixel,
+            PhotometricInterpretation = _photometric,
+            HorizontalPredictor = _predictor
+        };
+}

@@ -58,6 +58,8 @@
     <ConversionSettings TargetFormat="_targetFormat"
                         TargetFormatChanged="OnTargetFormatChanged"
                         EncoderChanged="OnEncoderChanged"
+                        StripMetadata="_stripMetadata"
+                        StripMetadataChanged="v => _stripMetadata = v"
                         Class="mb-4" />
 
     @* Batch Action Toolbar *@
@@ -123,6 +125,7 @@
         .FirstOrDefault(f => f is PngFormat)
         ?? ImageFormatInfo.EncodableFormats[0];
     private IImageEncoder? _encoder;
+    private bool _stripMetadata;
     private IJSObjectReference? _jsModule;
     private bool _batchConverting;
     private int _convertedCount;
@@ -212,7 +215,7 @@
         try
         {
             item.Job.TargetFormat = _targetFormat;
-            var result = await item.Job.ConvertAsync(_encoder);
+            var result = await item.Job.ConvertAsync(_encoder, _stripMetadata);
             item.Result = result;
             item.Status = ImageItemStatus.Done;
         }
@@ -275,7 +278,7 @@
         {
             foreach (var item in doneItems)
             {
-                var entry = archive.CreateEntry(item.Result!.OutputFileName, CompressionLevel.Fastest);
+                var entry = archive.CreateEntry(item.Result!.OutputFileName, CompressionLevel.NoCompression);
                 await using var entryStream = entry.Open();
                 item.Result.Stream.Position = 0;
                 await item.Result.Stream.CopyToAsync(entryStream);

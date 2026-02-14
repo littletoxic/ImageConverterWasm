@@ -1,6 +1,10 @@
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Jpeg;
+using SixLabors.ImageSharp.Metadata.Profiles.Exif;
+using SixLabors.ImageSharp.Metadata.Profiles.Icc;
+using SixLabors.ImageSharp.Metadata.Profiles.Iptc;
+using SixLabors.ImageSharp.Metadata.Profiles.Xmp;
 using SixLabors.ImageSharp.Processing;
 
 namespace ImageConverter.Services;
@@ -23,15 +27,35 @@ public sealed class LoadedImage(string fileName, long fileSize, IImageFormat tar
         _image = await Image.LoadAsync(stream);
     }
 
-    public async Task<ConversionResult> ConvertAsync(IImageEncoder? encoder)
+    public async Task<ConversionResult> ConvertAsync(IImageEncoder? encoder, bool stripMetadata = false)
     {
         if (_image is null)
             throw new InvalidOperationException("Image not loaded.");
 
         encoder ??= Configuration.Default.ImageFormatsManager.GetEncoder(TargetFormat);
 
+        var meta = _image.Metadata;
+        var (exif, xmp, icc, iptc) = (meta.ExifProfile, meta.XmpProfile, meta.IccProfile, meta.IptcProfile);
+        if (stripMetadata)
+        {
+            meta.ExifProfile = null;
+            meta.XmpProfile = null;
+            meta.IccProfile = null;
+            meta.IptcProfile = null;
+        }
+
         var outputStream = new MemoryStream();
-        await _image.SaveAsync(outputStream, encoder);
+        try
+        {
+            await _image.SaveAsync(outputStream, encoder);
+        }
+        finally
+        {
+            meta.ExifProfile = exif;
+            meta.XmpProfile = xmp;
+            meta.IccProfile = icc;
+            meta.IptcProfile = iptc;
+        }
 
         outputStream.Position = 0;
         var outputFileName = ImageFormatInfo.GetOutputFileName(FileName, TargetFormat);

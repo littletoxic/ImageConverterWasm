@@ -7,8 +7,22 @@
 <MudSlider T="int" Value="_quality" ValueChanged="OnQualityChanged"
            Min="1" Max="100" Step="1" Color="MudBlazor.Color.Primary" Class="mb-4" />
 
+<MudExpansionPanels Elevation="0" Class="mb-2">
+    <MudExpansionPanel Text="高级选项">
+        <MudSelect T="JpegEncodingColor?" Value="_colorType" ValueChanged="OnColorTypeChanged"
+                   Label="色彩编码" Variant="Variant.Outlined" Class="mb-4">
+            <MudSelectItem T="JpegEncodingColor?" Value="@((JpegEncodingColor?)null)">自动</MudSelectItem>
+            <MudSelectItem T="JpegEncodingColor?" Value="JpegEncodingColor.YCbCrRatio444">YCbCr 4:4:4（高质量）</MudSelectItem>
+            <MudSelectItem T="JpegEncodingColor?" Value="JpegEncodingColor.YCbCrRatio420">YCbCr 4:2:0（更小）</MudSelectItem>
+            <MudSelectItem T="JpegEncodingColor?" Value="JpegEncodingColor.Luminance">灰度</MudSelectItem>
+            <MudSelectItem T="JpegEncodingColor?" Value="JpegEncodingColor.Rgb">RGB</MudSelectItem>
+        </MudSelect>
+    </MudExpansionPanel>
+</MudExpansionPanels>
+
 @code {
     private int _quality = 90;
+    private JpegEncodingColor? _colorType;
 
     private async Task OnQualityChanged(int value)
     {
@@ -16,6 +30,16 @@
         await NotifyEncoderChanged();
     }
 
+    private async Task OnColorTypeChanged(JpegEncodingColor? value)
+    {
+        _colorType = value;
+        await NotifyEncoderChanged();
+    }
+
     protected override IImageEncoder BuildEncoder() =>
-        new JpegEncoder { Quality = _quality };
+        new JpegEncoder
+        {
+            Quality = _quality,
+            ColorType = _colorType
+        };
 }

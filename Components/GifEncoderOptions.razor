@@ -1,0 +1,27 @@
+@using SixLabors.ImageSharp.Formats
+@using SixLabors.ImageSharp.Formats.Gif
+@attribute [FormatEncoder(typeof(GifFormat))]
+@inherits EncoderOptionsBase
+
+<MudSelect T="GifColorTableMode?" Value="_colorTableMode" ValueChanged="OnColorTableModeChanged"
+           Label="颜色表模式" Variant="Variant.Outlined" Class="mb-4">
+    <MudSelectItem T="GifColorTableMode?" Value="@((GifColorTableMode?)null)">自动</MudSelectItem>
+    <MudSelectItem T="GifColorTableMode?" Value="GifColorTableMode.Global">全局</MudSelectItem>
+    <MudSelectItem T="GifColorTableMode?" Value="GifColorTableMode.Local">逐帧</MudSelectItem>
+</MudSelect>
+
+@code {
+    private GifColorTableMode? _colorTableMode;
+
+    private async Task OnColorTableModeChanged(GifColorTableMode? value)
+    {
+        _colorTableMode = value;
+        await NotifyEncoderChanged();
+    }
+
+    protected override IImageEncoder BuildEncoder() =>
+        new GifEncoder
+        {
+            ColorTableMode = _colorTableMode
+        };
+}

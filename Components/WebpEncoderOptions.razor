@@ -11,9 +11,46 @@
 <MudSlider T="int" Value="_quality" ValueChanged="OnQualityChanged"
            Min="0" Max="100" Step="1" Color="MudBlazor.Color.Primary" Class="mb-4" />
 
+<MudExpansionPanels Elevation="0" Class="mb-2">
+    <MudExpansionPanel Text="高级选项">
+        <MudText Typo="Typo.body2" Class="mb-2">压缩方法（0=最快，6=最慢最小）：@_method</MudText>
+        <MudSlider T="int" Value="_method" ValueChanged="OnMethodChanged"
+                   Min="0" Max="6" Step="1" Color="MudBlazor.Color.Primary" Class="mb-4" />
+
+        <MudText Typo="Typo.body2" Class="mb-2">去块滤波强度：@_filterStrength</MudText>
+        <MudSlider T="int" Value="_filterStrength" ValueChanged="OnFilterStrengthChanged"
+                   Min="0" Max="100" Step="1" Color="MudBlazor.Color.Primary" Class="mb-4" />
+
+        @if (_lossless)
+        {
+            <MudSwitch T="bool" Value="_nearLossless" ValueChanged="OnNearLosslessChanged"
+                       Color="MudBlazor.Color.Primary" Class="mb-2"
+                       Label="近似无损" />
+
+            @if (_nearLossless)
+            {
+                <MudText Typo="Typo.body2" Class="mb-2">近似无损质量：@_nearLosslessQuality</MudText>
+                <MudSlider T="int" Value="_nearLosslessQuality" ValueChanged="OnNearLosslessQualityChanged"
+                           Min="0" Max="100" Step="1" Color="MudBlazor.Color.Primary" Class="mb-4" />
+            }
+        }
+
+        <MudSelect T="WebpTransparentColorMode" Value="_transparentColorMode" ValueChanged="OnTransparentColorModeChanged"
+                   Label="透明色处理" Variant="Variant.Outlined" Class="mb-4">
+            <MudSelectItem T="WebpTransparentColorMode" Value="WebpTransparentColorMode.Preserve">保留</MudSelectItem>
+            <MudSelectItem T="WebpTransparentColorMode" Value="WebpTransparentColorMode.Clear">清除</MudSelectItem>
+        </MudSelect>
+    </MudExpansionPanel>
+</MudExpansionPanels>
+
 @code {
     private int _quality = 75;
     private bool _lossless;
+    private int _method = 4;
+    private int _filterStrength = 60;
+    private bool _nearLossless;
+    private int _nearLosslessQuality = 60;
+    private WebpTransparentColorMode _transparentColorMode = WebpTransparentColorMode.Preserve;
 
     private async Task OnLosslessChanged(bool value)
     {
@@ -27,10 +64,45 @@
         await NotifyEncoderChanged();
     }
 
+    private async Task OnMethodChanged(int value)
+    {
+        _method = value;
+        await NotifyEncoderChanged();
+    }
+
+    private async Task OnFilterStrengthChanged(int value)
+    {
+        _filterStrength = value;
+        await NotifyEncoderChanged();
+    }
+
+    private async Task OnNearLosslessChanged(bool value)
+    {
+        _nearLossless = value;
+        await NotifyEncoderChanged();
+    }
+
+    private async Task OnNearLosslessQualityChanged(int value)
+    {
+        _nearLosslessQuality = value;
+        await NotifyEncoderChanged();
+    }
+
+    private async Task OnTransparentColorModeChanged(WebpTransparentColorMode value)
+    {
+        _transparentColorMode = value;
+        await NotifyEncoderChanged();
+    }
+
     protected override IImageEncoder BuildEncoder() =>
         new WebpEncoder
         {
             FileFormat = _lossless ? WebpFileFormatType.Lossless : WebpFileFormatType.Lossy,
-            Quality = _quality
+            Quality = _quality,
+            Method = (WebpEncodingMethod)_method,
+            FilterStrength = _filterStrength,
+            NearLossless = _nearLossless,
+            NearLosslessQuality = _nearLosslessQuality,
+            TransparentColorMode = _transparentColorMode
         };
 }
