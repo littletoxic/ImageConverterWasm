@@ -1,4 +1,3 @@
-using ImageConverter.Components;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Jpeg;
@@ -24,12 +23,12 @@ public sealed class LoadedImage(string fileName, long fileSize, IImageFormat tar
         _image = await Image.LoadAsync(stream);
     }
 
-    public async Task<ConversionResult> ConvertAsync(EncoderOptionsBase? encoderOptions)
+    public async Task<ConversionResult> ConvertAsync(IEncoderConfig? encoderConfig)
     {
         if (_image is null)
             throw new InvalidOperationException("Image not loaded.");
 
-        var encoder = encoderOptions?.CreateEncoder()
+        var encoder = encoderConfig?.CreateEncoder()
             ?? Configuration.Default.ImageFormatsManager.GetEncoder(TargetFormat);
 
         var outputStream = new MemoryStream();
@@ -40,11 +39,11 @@ public sealed class LoadedImage(string fileName, long fileSize, IImageFormat tar
         return new ConversionResult(outputStream, outputFileName, outputStream.Length);
     }
 
-    public long EstimateMemory(EncoderOptionsBase? encoderOptions)
+    public long EstimateMemory(IEncoderConfig? encoderConfig)
     {
         long pixels = (long)Width * Height;
         long imageMemory = pixels * 4;
-        long encoderOverhead = encoderOptions?.EstimateEncoderOverhead(pixels) ?? pixels * 2;
+        long encoderOverhead = encoderConfig?.EstimateEncoderOverhead(pixels) ?? pixels * 2;
         return imageMemory + encoderOverhead;
     }
 

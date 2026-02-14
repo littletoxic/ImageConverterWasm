@@ -21,29 +21,25 @@
     }
     @if (componentType is not null)
     {
-        <DynamicComponent Type="componentType" Parameters="_encoderOptionsParams"
-                          @ref="_dynamicComponent" />
+        <DynamicComponent Type="componentType" Parameters="_encoderOptionsParams" />
     }
 </MudPaper>
 
 @code {
     [Parameter] public IImageFormat TargetFormat { get; set; } = default!;
     [Parameter] public EventCallback<IImageFormat> TargetFormatChanged { get; set; }
-    [Parameter] public EventCallback OptionsChanged { get; set; }
+    [Parameter] public EventCallback<IEncoderConfig> EncoderConfigChanged { get; set; }
     [Parameter] public string? Class { get; set; }
 
-    private DynamicComponent? _dynamicComponent;
     private Dictionary<string, object>? _encoderOptionsParams;
-
-    public EncoderOptionsBase? EncoderOptions =>
-        _dynamicComponent?.Instance as EncoderOptionsBase;
 
     protected override void OnInitialized()
     {
         _encoderOptionsParams = new Dictionary<string, object>
         {
-            [nameof(EncoderOptionsBase.OptionsChanged)] =
-                EventCallback.Factory.Create(this, () => OptionsChanged.InvokeAsync()),
+            [nameof(EncoderOptionsBase.EncoderConfigChanged)] =
+                EventCallback.Factory.Create<IEncoderConfig>(this,
+                    config => EncoderConfigChanged.InvokeAsync(config)),
         };
     }
 

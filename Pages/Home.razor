@@ -58,10 +58,9 @@
 @* === Conversion Settings + Batch Actions + Image Grid === *@
 @if (_items.Count > 0)
 {
-    <ConversionSettings @ref="_settingsComponent"
-                        TargetFormat="_targetFormat"
+    <ConversionSettings TargetFormat="_targetFormat"
                         TargetFormatChanged="OnTargetFormatChanged"
-                        OptionsChanged="StateHasChanged"
+                        EncoderConfigChanged="OnEncoderConfigChanged"
                         Class="mb-4" />
 
     @* Batch Action Toolbar *@
@@ -126,7 +125,7 @@
     private IImageFormat _targetFormat = ImageFormatInfo.EncodableFormats
         .FirstOrDefault(f => f is PngFormat)
         ?? ImageFormatInfo.EncodableFormats[0];
-    private ConversionSettings? _settingsComponent;
+    private IEncoderConfig? _encoderConfig;
     private IJSObjectReference? _jsModule;
     private bool _batchConverting;
     private int _convertedCount;
@@ -200,6 +199,9 @@
         }
     }
 
+    private void OnEncoderConfigChanged(IEncoderConfig config) =>
+        _encoderConfig = config;
+
     private async Task ConvertSingle(ImageItem item)
     {
         if (item.Job is not { IsLoaded: true }) return;
@@ -213,7 +215,7 @@
         try
         {
             item.Job.TargetFormat = _targetFormat;
-            var result = await item.Job.ConvertAsync(_settingsComponent?.EncoderOptions);
+            var result = await item.Job.ConvertAsync(_encoderConfig);
             item.Result = result;
             item.Status = ImageItemStatus.Done;
         }

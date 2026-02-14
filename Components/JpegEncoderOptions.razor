@@ -1,3 +1,4 @@
+@using ImageConverter.Services
 @using SixLabors.ImageSharp.Formats
 @using SixLabors.ImageSharp.Formats.Jpeg
 @attribute [FormatEncoder(typeof(JpegFormat))]
@@ -13,18 +14,14 @@
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
-            await NotifyOptionsChanged();
+            await NotifyConfigChanged(BuildConfig());
     }
 
     private async Task OnQualityChanged(int value)
     {
         _quality = value;
-        await NotifyOptionsChanged();
+        await NotifyConfigChanged(BuildConfig());
     }
 
-    public override IImageEncoder CreateEncoder() =>
-        new JpegEncoder { Quality = _quality };
-
-    public override long EstimateEncoderOverhead(long pixels) =>
-        1 * 1024 * 1024;
+    private JpegEncoderConfig BuildConfig() => new(_quality);
 }
