@@ -15,18 +15,7 @@
 
 @* === Upload Zone === *@
 <MudPaper Class="pa-4 mb-4" Elevation="2">
-    <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-2">
-        <MudText Typo="Typo.h6">上传图像</MudText>
-        <MudSpacer />
-        @if (_items.Count > 0)
-        {
-            <MudButton Variant="Variant.Text" Color="MudBlazor.Color.Error"
-                       StartIcon="@Icons.Material.Filled.DeleteSweep"
-                       OnClick="ClearAll">
-                清空全部
-            </MudButton>
-        }
-    </MudStack>
+    <MudText Typo="Typo.h6" Class="mb-2">上传图像</MudText>
 
     <MudFileUpload T="IReadOnlyList<IBrowserFile>"
                    AppendMultipleFiles
@@ -84,6 +73,12 @@
                        OnClick="DownloadAll"
                        Disabled="@(!HasDownloadableItems || _batchConverting)">
                 全部下载 (ZIP)
+            </MudButton>
+            <MudButton Variant="Variant.Text" Color="MudBlazor.Color.Error"
+                       StartIcon="@Icons.Material.Filled.DeleteSweep"
+                       OnClick="ClearAll"
+                       Disabled="_batchConverting">
+                清空全部
             </MudButton>
             <MudSpacer />
             <MudText Typo="Typo.body2" Color="MudBlazor.Color.Secondary">
@@ -247,6 +242,7 @@
 
         foreach (var item in toConvert)
         {
+            await Task.Yield();
             await ConvertSingle(item);
             _convertedCount++;
             StateHasChanged();

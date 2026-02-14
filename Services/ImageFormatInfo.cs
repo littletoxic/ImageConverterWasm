@@ -26,6 +26,4 @@ public static class ImageFormatInfo
         return $"{bytes / (1024.0 * 1024.0):F2} MB";
     }
 
-    public static string FormatPixelCount(long pixels) =>
-        $"{pixels / 1_000_000.0:F1}M";
 }
