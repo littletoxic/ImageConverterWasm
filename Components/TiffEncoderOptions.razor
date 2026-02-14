@@ -4,7 +4,7 @@
 @attribute [FormatEncoder(typeof(TiffFormat))]
 @inherits EncoderOptionsBase
 
-<MudSelect T="TiffCompression?" Value="_compression" ValueChanged="OnCompressionChanged"
+<MudSelect T="TiffCompression?" @bind-Value="_compression" @bind-Value:after="NotifyEncoderChanged"
            Label="压缩方式" Variant="Variant.Outlined" Class="mb-4">
     <MudSelectItem T="TiffCompression?" Value="@((TiffCompression?)null)">自动</MudSelectItem>
     <MudSelectItem T="TiffCompression?" Value="TiffCompression.None">无压缩</MudSelectItem>
@@ -22,7 +22,7 @@
             </div>
         </TitleContent>
         <ChildContent>
-        <MudSelect T="TiffBitsPerPixel?" Value="_bitsPerPixel" ValueChanged="OnBitsPerPixelChanged"
+        <MudSelect T="TiffBitsPerPixel?" @bind-Value="_bitsPerPixel" @bind-Value:after="NotifyEncoderChanged"
                    Label="位深度" Variant="Variant.Outlined" Class="mb-4">
             <MudSelectItem T="TiffBitsPerPixel?" Value="@((TiffBitsPerPixel?)null)">自动</MudSelectItem>
             <MudSelectItem T="TiffBitsPerPixel?" Value="TiffBitsPerPixel.Bit1">1 位</MudSelectItem>
@@ -31,7 +31,7 @@
             <MudSelectItem T="TiffBitsPerPixel?" Value="TiffBitsPerPixel.Bit32">32 位</MudSelectItem>
         </MudSelect>
 
-        <MudSelect T="TiffPhotometricInterpretation?" Value="_photometric" ValueChanged="OnPhotometricChanged"
+        <MudSelect T="TiffPhotometricInterpretation?" @bind-Value="_photometric" @bind-Value:after="NotifyEncoderChanged"
                    Label="色彩解释" Variant="Variant.Outlined" Class="mb-4">
             <MudSelectItem T="TiffPhotometricInterpretation?" Value="@((TiffPhotometricInterpretation?)null)">自动</MudSelectItem>
             <MudSelectItem T="TiffPhotometricInterpretation?" Value="TiffPhotometricInterpretation.BlackIsZero">灰度</MudSelectItem>
@@ -40,7 +40,7 @@
             <MudSelectItem T="TiffPhotometricInterpretation?" Value="TiffPhotometricInterpretation.YCbCr">YCbCr</MudSelectItem>
         </MudSelect>
 
-        <MudSelect T="TiffPredictor?" Value="_predictor" ValueChanged="OnPredictorChanged"
+        <MudSelect T="TiffPredictor?" @bind-Value="_predictor" @bind-Value:after="NotifyEncoderChanged"
                    Label="水平预测" Variant="Variant.Outlined" Class="mb-4">
             <MudSelectItem T="TiffPredictor?" Value="@((TiffPredictor?)null)">自动</MudSelectItem>
             <MudSelectItem T="TiffPredictor?" Value="TiffPredictor.None">无</MudSelectItem>
@@ -55,30 +55,6 @@
     private TiffBitsPerPixel? _bitsPerPixel;
     private TiffPhotometricInterpretation? _photometric;
     private TiffPredictor? _predictor;
-
-    private async Task OnCompressionChanged(TiffCompression? value)
-    {
-        _compression = value;
-        await NotifyEncoderChanged();
-    }
-
-    private async Task OnBitsPerPixelChanged(TiffBitsPerPixel? value)
-    {
-        _bitsPerPixel = value;
-        await NotifyEncoderChanged();
-    }
-
-    private async Task OnPhotometricChanged(TiffPhotometricInterpretation? value)
-    {
-        _photometric = value;
-        await NotifyEncoderChanged();
-    }
-
-    private async Task OnPredictorChanged(TiffPredictor? value)
-    {
-        _predictor = value;
-        await NotifyEncoderChanged();
-    }
 
     protected override IImageEncoder BuildEncoder() =>
         new TiffEncoder

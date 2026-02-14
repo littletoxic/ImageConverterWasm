@@ -3,7 +3,7 @@
 @attribute [FormatEncoder(typeof(GifFormat))]
 @inherits EncoderOptionsBase
 
-<MudSelect T="GifColorTableMode?" Value="_colorTableMode" ValueChanged="OnColorTableModeChanged"
+<MudSelect T="GifColorTableMode?" @bind-Value="_colorTableMode" @bind-Value:after="NotifyEncoderChanged"
            Label="颜色表模式" Variant="Variant.Outlined" Class="mb-4">
     <MudSelectItem T="GifColorTableMode?" Value="@((GifColorTableMode?)null)">自动</MudSelectItem>
     <MudSelectItem T="GifColorTableMode?" Value="GifColorTableMode.Global">全局</MudSelectItem>
@@ -12,12 +12,6 @@
 
 @code {
     private GifColorTableMode? _colorTableMode;
-
-    private async Task OnColorTableModeChanged(GifColorTableMode? value)
-    {
-        _colorTableMode = value;
-        await NotifyEncoderChanged();
-    }
 
     protected override IImageEncoder BuildEncoder() =>
         new GifEncoder

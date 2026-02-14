@@ -3,7 +3,7 @@
 @attribute [FormatEncoder(typeof(BmpFormat))]
 @inherits EncoderOptionsBase
 
-<MudSelect T="BmpBitsPerPixel?" Value="_bitsPerPixel" ValueChanged="OnBitsPerPixelChanged"
+<MudSelect T="BmpBitsPerPixel?" @bind-Value="_bitsPerPixel" @bind-Value:after="NotifyEncoderChanged"
            Label="位深度" Variant="Variant.Outlined" Class="mb-4">
     <MudSelectItem T="BmpBitsPerPixel?" Value="@((BmpBitsPerPixel?)null)">自动</MudSelectItem>
     <MudSelectItem T="BmpBitsPerPixel?" Value="BmpBitsPerPixel.Pixel8">8 位（256 色）</MudSelectItem>
@@ -12,25 +12,13 @@
     <MudSelectItem T="BmpBitsPerPixel?" Value="BmpBitsPerPixel.Pixel32">32 位</MudSelectItem>
 </MudSelect>
 
-<MudSwitch T="bool" Value="_supportTransparency" ValueChanged="OnSupportTransparencyChanged"
+<MudSwitch T="bool" @bind-Value="_supportTransparency" @bind-Value:after="NotifyEncoderChanged"
            Color="MudBlazor.Color.Primary"
            Label="支持透明（仅 32 位）" />
 
 @code {
     private BmpBitsPerPixel? _bitsPerPixel;
     private bool _supportTransparency;
-
-    private async Task OnBitsPerPixelChanged(BmpBitsPerPixel? value)
-    {
-        _bitsPerPixel = value;
-        await NotifyEncoderChanged();
-    }
-
-    private async Task OnSupportTransparencyChanged(bool value)
-    {
-        _supportTransparency = value;
-        await NotifyEncoderChanged();
-    }
 
     protected override IImageEncoder BuildEncoder() =>
         new BmpEncoder

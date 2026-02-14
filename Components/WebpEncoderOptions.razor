@@ -3,12 +3,12 @@
 @attribute [FormatEncoder(typeof(WebpFormat))]
 @inherits EncoderOptionsBase
 
-<MudSwitch T="bool" Value="_lossless" ValueChanged="OnLosslessChanged"
+<MudSwitch T="bool" @bind-Value="_lossless" @bind-Value:after="NotifyEncoderChanged"
            Color="MudBlazor.Color.Primary" Class="mb-2"
            Label="@(_lossless ? "无损模式（内存占用更高）" : "有损模式")" />
 
 <MudText Typo="Typo.body2" Class="mb-2">@(_lossless ? "压缩努力程度" : "WebP 质量")：@_quality</MudText>
-<MudSlider T="int" Value="_quality" ValueChanged="OnQualityChanged"
+<MudSlider T="int" @bind-Value="_quality" @bind-Value:after="NotifyEncoderChanged"
            Min="0" Max="100" Step="1" Color="MudBlazor.Color.Primary" Class="mb-4" />
 
 <MudExpansionPanels Elevation="0" Dense="true" Class="mb-2 border-solid border rounded mud-border-primary">
@@ -21,28 +21,28 @@
         </TitleContent>
         <ChildContent>
         <MudText Typo="Typo.body2" Class="mb-2">压缩方法（0=最快，6=最慢最小）：@_method</MudText>
-        <MudSlider T="int" Value="_method" ValueChanged="OnMethodChanged"
+        <MudSlider T="int" @bind-Value="_method" @bind-Value:after="NotifyEncoderChanged"
                    Min="0" Max="6" Step="1" Color="MudBlazor.Color.Primary" Class="mb-4" />
 
         <MudText Typo="Typo.body2" Class="mb-2">去块滤波强度：@_filterStrength</MudText>
-        <MudSlider T="int" Value="_filterStrength" ValueChanged="OnFilterStrengthChanged"
+        <MudSlider T="int" @bind-Value="_filterStrength" @bind-Value:after="NotifyEncoderChanged"
                    Min="0" Max="100" Step="1" Color="MudBlazor.Color.Primary" Class="mb-4" />
 
         @if (_lossless)
         {
-            <MudSwitch T="bool" Value="_nearLossless" ValueChanged="OnNearLosslessChanged"
+            <MudSwitch T="bool" @bind-Value="_nearLossless" @bind-Value:after="NotifyEncoderChanged"
                        Color="MudBlazor.Color.Primary" Class="mb-2"
                        Label="近似无损" />
 
             @if (_nearLossless)
             {
                 <MudText Typo="Typo.body2" Class="mb-2">近似无损质量：@_nearLosslessQuality</MudText>
-                <MudSlider T="int" Value="_nearLosslessQuality" ValueChanged="OnNearLosslessQualityChanged"
+                <MudSlider T="int" @bind-Value="_nearLosslessQuality" @bind-Value:after="NotifyEncoderChanged"
                            Min="0" Max="100" Step="1" Color="MudBlazor.Color.Primary" Class="mb-4" />
             }
         }
 
-        <MudSelect T="WebpTransparentColorMode" Value="_transparentColorMode" ValueChanged="OnTransparentColorModeChanged"
+        <MudSelect T="WebpTransparentColorMode" @bind-Value="_transparentColorMode" @bind-Value:after="NotifyEncoderChanged"
                    Label="透明色处理" Variant="Variant.Outlined" Class="mb-4">
             <MudSelectItem T="WebpTransparentColorMode" Value="WebpTransparentColorMode.Preserve">保留</MudSelectItem>
             <MudSelectItem T="WebpTransparentColorMode" Value="WebpTransparentColorMode.Clear">清除</MudSelectItem>
@@ -59,48 +59,6 @@
     private bool _nearLossless;
     private int _nearLosslessQuality = 60;
     private WebpTransparentColorMode _transparentColorMode = WebpTransparentColorMode.Preserve;
-
-    private async Task OnLosslessChanged(bool value)
-    {
-        _lossless = value;
-        await NotifyEncoderChanged();
-    }
-
-    private async Task OnQualityChanged(int value)
-    {
-        _quality = value;
-        await NotifyEncoderChanged();
-    }
-
-    private async Task OnMethodChanged(int value)
-    {
-        _method = value;
-        await NotifyEncoderChanged();
-    }
-
-    private async Task OnFilterStrengthChanged(int value)
-    {
-        _filterStrength = value;
-        await NotifyEncoderChanged();
-    }
-
-    private async Task OnNearLosslessChanged(bool value)
-    {
-        _nearLossless = value;
-        await NotifyEncoderChanged();
-    }
-
-    private async Task OnNearLosslessQualityChanged(int value)
-    {
-        _nearLosslessQuality = value;
-        await NotifyEncoderChanged();
-    }
-
-    private async Task OnTransparentColorModeChanged(WebpTransparentColorMode value)
-    {
-        _transparentColorMode = value;
-        await NotifyEncoderChanged();
-    }
 
     protected override IImageEncoder BuildEncoder() =>
         new WebpEncoder
