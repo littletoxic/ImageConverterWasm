@@ -21,8 +21,15 @@
            Color="MudBlazor.Color.Primary" Class="mb-4"
            Label="Adam7 交错（渐进式加载）" />
 
-<MudExpansionPanels Elevation="0" Class="mb-2">
-    <MudExpansionPanel Text="高级选项">
+<MudExpansionPanels Elevation="0" Dense="true" Class="mb-2 border-solid border rounded mud-border-primary">
+    <MudExpansionPanel>
+        <TitleContent>
+            <div class="d-flex align-center">
+                <MudIcon Icon="@Icons.Material.Filled.Tune" Size="MudBlazor.Size.Small" Class="mr-2" Color="MudBlazor.Color.Primary" />
+                <MudText Typo="Typo.body2" Color="MudBlazor.Color.Primary">高级选项</MudText>
+            </div>
+        </TitleContent>
+        <ChildContent>
         <MudSelect T="PngBitDepth?" Value="_bitDepth" ValueChanged="OnBitDepthChanged"
                    Label="位深度" Variant="Variant.Outlined" Class="mb-4">
             <MudSelectItem T="PngBitDepth?" Value="@((PngBitDepth?)null)">自动</MudSelectItem>
@@ -49,6 +56,7 @@
             <MudSelectItem T="PngTransparentColorMode" Value="PngTransparentColorMode.Preserve">保留</MudSelectItem>
             <MudSelectItem T="PngTransparentColorMode" Value="PngTransparentColorMode.Clear">清除为透明黑</MudSelectItem>
         </MudSelect>
+        </ChildContent>
     </MudExpansionPanel>
 </MudExpansionPanels>
 

@@ -13,8 +13,15 @@
     <MudSelectItem T="TiffCompression?" Value="TiffCompression.Jpeg">JPEG</MudSelectItem>
 </MudSelect>
 
-<MudExpansionPanels Elevation="0" Class="mb-2">
-    <MudExpansionPanel Text="高级选项">
+<MudExpansionPanels Elevation="0" Dense="true" Class="mb-2 border-solid border rounded mud-border-primary">
+    <MudExpansionPanel>
+        <TitleContent>
+            <div class="d-flex align-center">
+                <MudIcon Icon="@Icons.Material.Filled.Tune" Size="MudBlazor.Size.Small" Class="mr-2" Color="MudBlazor.Color.Primary" />
+                <MudText Typo="Typo.body2" Color="MudBlazor.Color.Primary">高级选项</MudText>
+            </div>
+        </TitleContent>
+        <ChildContent>
         <MudSelect T="TiffBitsPerPixel?" Value="_bitsPerPixel" ValueChanged="OnBitsPerPixelChanged"
                    Label="位深度" Variant="Variant.Outlined" Class="mb-4">
             <MudSelectItem T="TiffBitsPerPixel?" Value="@((TiffBitsPerPixel?)null)">自动</MudSelectItem>
@@ -39,6 +46,7 @@
             <MudSelectItem T="TiffPredictor?" Value="TiffPredictor.None">无</MudSelectItem>
             <MudSelectItem T="TiffPredictor?" Value="TiffPredictor.Horizontal">水平</MudSelectItem>
         </MudSelect>
+        </ChildContent>
     </MudExpansionPanel>
 </MudExpansionPanels>
 

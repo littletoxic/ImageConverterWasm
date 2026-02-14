@@ -11,8 +11,15 @@
 <MudSlider T="int" Value="_quality" ValueChanged="OnQualityChanged"
            Min="0" Max="100" Step="1" Color="MudBlazor.Color.Primary" Class="mb-4" />
 
-<MudExpansionPanels Elevation="0" Class="mb-2">
-    <MudExpansionPanel Text="高级选项">
+<MudExpansionPanels Elevation="0" Dense="true" Class="mb-2 border-solid border rounded mud-border-primary">
+    <MudExpansionPanel>
+        <TitleContent>
+            <div class="d-flex align-center">
+                <MudIcon Icon="@Icons.Material.Filled.Tune" Size="MudBlazor.Size.Small" Class="mr-2" Color="MudBlazor.Color.Primary" />
+                <MudText Typo="Typo.body2" Color="MudBlazor.Color.Primary">高级选项</MudText>
+            </div>
+        </TitleContent>
+        <ChildContent>
         <MudText Typo="Typo.body2" Class="mb-2">压缩方法（0=最快，6=最慢最小）：@_method</MudText>
         <MudSlider T="int" Value="_method" ValueChanged="OnMethodChanged"
                    Min="0" Max="6" Step="1" Color="MudBlazor.Color.Primary" Class="mb-4" />
@@ -40,6 +47,7 @@
             <MudSelectItem T="WebpTransparentColorMode" Value="WebpTransparentColorMode.Preserve">保留</MudSelectItem>
             <MudSelectItem T="WebpTransparentColorMode" Value="WebpTransparentColorMode.Clear">清除</MudSelectItem>
         </MudSelect>
+        </ChildContent>
     </MudExpansionPanel>
 </MudExpansionPanels>
 
