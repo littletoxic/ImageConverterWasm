@@ -54,7 +54,7 @@
 
     @* Batch Action Toolbar *@
     <MudPaper Class="pa-3 mb-4" Elevation="1">
-        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Wrap="Wrap.Wrap">
+        <div class="d-flex flex-column flex-sm-row align-center gap-2">
             @if (_batchConverting)
             {
                 <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Primary" Disabled="true">
@@ -94,7 +94,7 @@
                     <span>，@doneCount 张已转换</span>
                 }
             </MudText>
-        </MudStack>
+        </div>
     </MudPaper>
 
     @* Image Grid *@
