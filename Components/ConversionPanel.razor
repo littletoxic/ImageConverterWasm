@@ -5,8 +5,8 @@
 
     <MudSelect T="IImageFormat"
                Label="目标格式"
-               Value="TargetFormat"
-               ValueChanged="OnTargetFormatChanged"
+               @bind-Value="TargetFormat"
+               @bind-Value:after="() => TargetFormatChanged.InvokeAsync(TargetFormat)"
                Variant="Variant.Outlined"
                Class="mb-4">
         @foreach (var format in FormatInfo.EncodableFormats)
@@ -15,7 +15,7 @@
         }
     </MudSelect>
 
-    <MudSwitch T="bool" Value="_stripMetadata" ValueChanged="OnStripMetadataChanged"
+    <MudSwitch T="bool" @bind-Value="_stripMetadata" @bind-Value:after="SyncStripMetadata"
                Color="MudBlazor.Color.Primary" Class="mb-4"
                Label="剥离元数据（EXIF、XMP 等）" />
 
@@ -48,15 +48,6 @@
         };
     }
 
-    private async Task OnTargetFormatChanged(IImageFormat format)
-    {
-        TargetFormat = format;
-        await TargetFormatChanged.InvokeAsync(format);
-    }
-
-    private void OnStripMetadataChanged(bool value)
-    {
-        _stripMetadata = value;
-        _encoderParams![nameof(EncoderOptionsBase.SkipMetadata)] = value;
-    }
+    private void SyncStripMetadata() =>
+        _encoderParams![nameof(EncoderOptionsBase.SkipMetadata)] = _stripMetadata;
 }

@@ -47,8 +47,8 @@
 @* === Conversion Settings + Batch Actions + Image Grid === *@
 @if (_items.Count > 0)
 {
-    <ConversionPanel TargetFormat="_targetFormat"
-                     TargetFormatChanged="OnTargetFormatChanged"
+    <ConversionPanel @bind-TargetFormat="_targetFormat"
+                     @bind-TargetFormat:after="OnTargetFormatChanged"
                      EncoderChanged="OnEncoderChanged"
                      Class="mb-4" />
 
@@ -181,13 +181,12 @@
         StateHasChanged();
     }
 
-    private void OnTargetFormatChanged(IImageFormat format)
+    private void OnTargetFormatChanged()
     {
-        _targetFormat = format;
         foreach (var item in _items)
         {
             if (item.Job is not null)
-                item.Job.TargetFormat = format;
+                item.Job.TargetFormat = _targetFormat;
             if (item.Status == ImageItemStatus.Done)
             {
                 item.Result?.Stream.Dispose();
