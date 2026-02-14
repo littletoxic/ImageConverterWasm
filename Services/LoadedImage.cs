@@ -23,35 +23,15 @@ public sealed class LoadedImage(string fileName, long fileSize, IImageFormat tar
         _image = await Image.LoadAsync(stream);
     }
 
-    public async Task<ConversionResult> ConvertAsync(IImageEncoder? encoder, bool stripMetadata = false)
+    public async Task<ConversionResult> ConvertAsync(IImageEncoder? encoder)
     {
         if (_image is null)
             throw new InvalidOperationException("Image not loaded.");
 
         encoder ??= Configuration.Default.ImageFormatsManager.GetEncoder(TargetFormat);
 
-        var meta = _image.Metadata;
-        var (exif, xmp, icc, iptc) = (meta.ExifProfile, meta.XmpProfile, meta.IccProfile, meta.IptcProfile);
-        if (stripMetadata)
-        {
-            meta.ExifProfile = null;
-            meta.XmpProfile = null;
-            meta.IccProfile = null;
-            meta.IptcProfile = null;
-        }
-
         var outputStream = new MemoryStream();
-        try
-        {
-            await _image.SaveAsync(outputStream, encoder);
-        }
-        finally
-        {
-            meta.ExifProfile = exif;
-            meta.XmpProfile = xmp;
-            meta.IccProfile = icc;
-            meta.IptcProfile = iptc;
-        }
+        await _image.SaveAsync(outputStream, encoder);
 
         outputStream.Position = 0;
         var outputFileName = ImageFormatInfo.GetOutputFileName(FileName, TargetFormat);

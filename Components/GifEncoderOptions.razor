@@ -22,6 +22,7 @@
     protected override IImageEncoder BuildEncoder() =>
         new GifEncoder
         {
-            ColorTableMode = _colorTableMode
+            ColorTableMode = _colorTableMode,
+            SkipMetadata = SkipMetadata
         };
 }

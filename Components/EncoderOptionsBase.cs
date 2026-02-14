@@ -13,16 +13,33 @@ public sealed class FormatEncoderAttribute(Type formatType) : Attribute
 public abstract class EncoderOptionsBase : ComponentBase
 {
     [Parameter] public EventCallback<IImageEncoder> EncoderChanged { get; set; }
+    [Parameter] public bool SkipMetadata { get; set; }
 
     protected abstract IImageEncoder BuildEncoder();
 
     protected Task NotifyEncoderChanged() =>
         EncoderChanged.InvokeAsync(BuildEncoder());
 
+    private bool _initialized;
+    private bool _lastSkipMetadata;
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
+        {
+            _initialized = true;
+            _lastSkipMetadata = SkipMetadata;
             await NotifyEncoderChanged();
+        }
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_initialized && SkipMetadata != _lastSkipMetadata)
+        {
+            _lastSkipMetadata = SkipMetadata;
+            await NotifyEncoderChanged();
+        }
     }
 
     private static readonly Dictionary<Type, Type> FormatComponentMap =

@@ -15,7 +15,7 @@
         }
     </MudSelect>
 
-    <MudSwitch T="bool" Value="StripMetadata" ValueChanged="OnStripMetadataChanged"
+    <MudSwitch T="bool" Value="_stripMetadata" ValueChanged="OnStripMetadataChanged"
                Color="MudBlazor.Color.Primary" Class="mb-4"
                Label="剥离元数据（EXIF、XMP 等）" />
 
@@ -32,10 +32,9 @@
     [Parameter] public IImageFormat TargetFormat { get; set; } = default!;
     [Parameter] public EventCallback<IImageFormat> TargetFormatChanged { get; set; }
     [Parameter] public EventCallback<IImageEncoder> EncoderChanged { get; set; }
-    [Parameter] public bool StripMetadata { get; set; }
-    [Parameter] public EventCallback<bool> StripMetadataChanged { get; set; }
     [Parameter] public string? Class { get; set; }
 
+    private bool _stripMetadata;
     private Dictionary<string, object>? _encoderParams;
 
     protected override void OnInitialized()
@@ -45,6 +44,7 @@
             [nameof(EncoderOptionsBase.EncoderChanged)] =
                 EventCallback.Factory.Create<IImageEncoder>(this,
                     encoder => EncoderChanged.InvokeAsync(encoder)),
+            [nameof(EncoderOptionsBase.SkipMetadata)] = _stripMetadata,
         };
     }
 
@@ -54,9 +54,9 @@
         await TargetFormatChanged.InvokeAsync(format);
     }
 
-    private async Task OnStripMetadataChanged(bool value)
+    private void OnStripMetadataChanged(bool value)
     {
-        StripMetadata = value;
-        await StripMetadataChanged.InvokeAsync(value);
+        _stripMetadata = value;
+        _encoderParams![nameof(EncoderOptionsBase.SkipMetadata)] = value;
     }
 }
