@@ -23,13 +23,12 @@ public sealed class LoadedImage(string fileName, long fileSize, IImageFormat tar
         _image = await Image.LoadAsync(stream);
     }
 
-    public async Task<ConversionResult> ConvertAsync(IEncoderConfig? encoderConfig)
+    public async Task<ConversionResult> ConvertAsync(IImageEncoder? encoder)
     {
         if (_image is null)
             throw new InvalidOperationException("Image not loaded.");
 
-        var encoder = encoderConfig?.CreateEncoder()
-            ?? Configuration.Default.ImageFormatsManager.GetEncoder(TargetFormat);
+        encoder ??= Configuration.Default.ImageFormatsManager.GetEncoder(TargetFormat);
 
         var outputStream = new MemoryStream();
         await _image.SaveAsync(outputStream, encoder);
@@ -37,14 +36,6 @@ public sealed class LoadedImage(string fileName, long fileSize, IImageFormat tar
         outputStream.Position = 0;
         var outputFileName = ImageFormatInfo.GetOutputFileName(FileName, TargetFormat);
         return new ConversionResult(outputStream, outputFileName, outputStream.Length);
-    }
-
-    public long EstimateMemory(IEncoderConfig? encoderConfig)
-    {
-        long pixels = (long)Width * Height;
-        long imageMemory = pixels * 4;
-        long encoderOverhead = encoderConfig?.EstimateEncoderOverhead(pixels) ?? pixels * 2;
-        return imageMemory + encoderOverhead;
     }
 
     public string ToThumbnailDataUrl(int maxSize = 320)

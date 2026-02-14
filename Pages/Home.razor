@@ -1,9 +1,6 @@
 @page "/"
-@using ImageConverter.Services
-@using ImageConverter.Components
 @using SixLabors.ImageSharp.Formats
 @using SixLabors.ImageSharp.Formats.Png
-@using Microsoft.AspNetCore.Components.Forms
 @using System.IO.Compression
 @implements IAsyncDisposable
 @inject IJSRuntime JS
@@ -60,7 +57,7 @@
 {
     <ConversionSettings TargetFormat="_targetFormat"
                         TargetFormatChanged="OnTargetFormatChanged"
-                        EncoderConfigChanged="OnEncoderConfigChanged"
+                        EncoderChanged="OnEncoderChanged"
                         Class="mb-4" />
 
     @* Batch Action Toolbar *@
@@ -125,7 +122,7 @@
     private IImageFormat _targetFormat = ImageFormatInfo.EncodableFormats
         .FirstOrDefault(f => f is PngFormat)
         ?? ImageFormatInfo.EncodableFormats[0];
-    private IEncoderConfig? _encoderConfig;
+    private IImageEncoder? _encoder;
     private IJSObjectReference? _jsModule;
     private bool _batchConverting;
     private int _convertedCount;
@@ -199,8 +196,8 @@
         }
     }
 
-    private void OnEncoderConfigChanged(IEncoderConfig config) =>
-        _encoderConfig = config;
+    private void OnEncoderChanged(IImageEncoder encoder) =>
+        _encoder = encoder;
 
     private async Task ConvertSingle(ImageItem item)
     {
@@ -215,7 +212,7 @@
         try
         {
             item.Job.TargetFormat = _targetFormat;
-            var result = await item.Job.ConvertAsync(_encoderConfig);
+            var result = await item.Job.ConvertAsync(_encoder);
             item.Result = result;
             item.Status = ImageItemStatus.Done;
         }
@@ -236,19 +233,20 @@
 
     private async Task ConvertAll()
     {
+        var toConvert = _items
+            .Where(i => i.Status is ImageItemStatus.Pending or ImageItemStatus.Error)
+            .ToList();
+
         _batchConverting = true;
         _convertedCount = 0;
-        _totalToConvert = _items.Count(i => i.Status is ImageItemStatus.Pending or ImageItemStatus.Error);
+        _totalToConvert = toConvert.Count;
         StateHasChanged();
 
-        foreach (var item in _items.ToList())
+        foreach (var item in toConvert)
         {
-            if (item.Status is ImageItemStatus.Pending or ImageItemStatus.Error)
-            {
-                await ConvertSingle(item);
-                _convertedCount++;
-                StateHasChanged();
-            }
+            await ConvertSingle(item);
+            _convertedCount++;
+            StateHasChanged();
         }
 
         _batchConverting = false;

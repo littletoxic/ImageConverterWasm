@@ -1,4 +1,3 @@
-@using ImageConverter.Services
 @using SixLabors.ImageSharp.Formats
 @using SixLabors.ImageSharp.Formats.Jpeg
 @attribute [FormatEncoder(typeof(JpegFormat))]
@@ -11,17 +10,12 @@
 @code {
     private int _quality = 90;
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (firstRender)
-            await NotifyConfigChanged(BuildConfig());
-    }
-
     private async Task OnQualityChanged(int value)
     {
         _quality = value;
-        await NotifyConfigChanged(BuildConfig());
+        await NotifyEncoderChanged();
     }
 
-    private JpegEncoderConfig BuildConfig() => new(_quality);
+    protected override IImageEncoder BuildEncoder() =>
+        new JpegEncoder { Quality = _quality };
 }

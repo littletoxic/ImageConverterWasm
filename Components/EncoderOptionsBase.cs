@@ -1,5 +1,4 @@
 using System.Reflection;
-using ImageConverter.Services;
 using Microsoft.AspNetCore.Components;
 using SixLabors.ImageSharp.Formats;
 
@@ -13,10 +12,18 @@ public sealed class FormatEncoderAttribute(Type formatType) : Attribute
 
 public abstract class EncoderOptionsBase : ComponentBase
 {
-    [Parameter] public EventCallback<IEncoderConfig> EncoderConfigChanged { get; set; }
+    [Parameter] public EventCallback<IImageEncoder> EncoderChanged { get; set; }
 
-    protected Task NotifyConfigChanged(IEncoderConfig config) =>
-        EncoderConfigChanged.InvokeAsync(config);
+    protected abstract IImageEncoder BuildEncoder();
+
+    protected Task NotifyEncoderChanged() =>
+        EncoderChanged.InvokeAsync(BuildEncoder());
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+            await NotifyEncoderChanged();
+    }
 
     private static readonly Dictionary<Type, Type> FormatComponentMap =
         typeof(EncoderOptionsBase).Assembly.GetTypes()

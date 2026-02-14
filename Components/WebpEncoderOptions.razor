@@ -1,4 +1,3 @@
-@using ImageConverter.Services
 @using SixLabors.ImageSharp.Formats
 @using SixLabors.ImageSharp.Formats.Webp
 @attribute [FormatEncoder(typeof(WebpFormat))]
@@ -16,23 +15,22 @@
     private int _quality = 75;
     private bool _lossless;
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (firstRender)
-            await NotifyConfigChanged(BuildConfig());
-    }
-
     private async Task OnLosslessChanged(bool value)
     {
         _lossless = value;
-        await NotifyConfigChanged(BuildConfig());
+        await NotifyEncoderChanged();
     }
 
     private async Task OnQualityChanged(int value)
     {
         _quality = value;
-        await NotifyConfigChanged(BuildConfig());
+        await NotifyEncoderChanged();
     }
 
-    private WebpEncoderConfig BuildConfig() => new(_quality, _lossless);
+    protected override IImageEncoder BuildEncoder() =>
+        new WebpEncoder
+        {
+            FileFormat = _lossless ? WebpFileFormatType.Lossless : WebpFileFormatType.Lossy,
+            Quality = _quality
+        };
 }

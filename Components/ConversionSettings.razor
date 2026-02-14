@@ -1,4 +1,3 @@
-@using ImageConverter.Services
 @using SixLabors.ImageSharp.Formats
 
 <MudPaper Class="@($"pa-4 {Class}")" Elevation="2">
@@ -21,25 +20,25 @@
     }
     @if (componentType is not null)
     {
-        <DynamicComponent Type="componentType" Parameters="_encoderOptionsParams" />
+        <DynamicComponent Type="componentType" Parameters="_encoderParams" />
     }
 </MudPaper>
 
 @code {
     [Parameter] public IImageFormat TargetFormat { get; set; } = default!;
     [Parameter] public EventCallback<IImageFormat> TargetFormatChanged { get; set; }
-    [Parameter] public EventCallback<IEncoderConfig> EncoderConfigChanged { get; set; }
+    [Parameter] public EventCallback<IImageEncoder> EncoderChanged { get; set; }
     [Parameter] public string? Class { get; set; }
 
-    private Dictionary<string, object>? _encoderOptionsParams;
+    private Dictionary<string, object>? _encoderParams;
 
     protected override void OnInitialized()
     {
-        _encoderOptionsParams = new Dictionary<string, object>
+        _encoderParams = new Dictionary<string, object>
         {
-            [nameof(EncoderOptionsBase.EncoderConfigChanged)] =
-                EventCallback.Factory.Create<IEncoderConfig>(this,
-                    config => EncoderConfigChanged.InvokeAsync(config)),
+            [nameof(EncoderOptionsBase.EncoderChanged)] =
+                EventCallback.Factory.Create<IImageEncoder>(this,
+                    encoder => EncoderChanged.InvokeAsync(encoder)),
         };
     }
 

@@ -2,7 +2,8 @@
 
 <MudCard Elevation="2" Class="image-item-card">
     <div class="image-item-thumbnail">
-        <img src="@(Item.ThumbnailUrl ?? "")" alt="@Item.FileName" />
+        <MudImage Src="@(Item.ThumbnailUrl ?? "")" Alt="@Item.FileName"
+                  ObjectFit="ObjectFit.Contain" />
     </div>
     <MudCardContent Class="pa-3 pb-1">
         <MudTooltip Text="@Item.FileName">
@@ -80,7 +81,7 @@
 </MudCard>
 
 @code {
-    [Parameter, EditorRequired] public ImageItem Item { get; set; } = default!;
+    [Parameter, EditorRequired] public required ImageItem Item { get; set; }
     [Parameter] public EventCallback<ImageItem> OnConvert { get; set; }
     [Parameter] public EventCallback<ImageItem> OnDownload { get; set; }
     [Parameter] public EventCallback<ImageItem> OnRemove { get; set; }
