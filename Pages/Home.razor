@@ -213,7 +213,12 @@
         try
         {
             item.Job.TargetFormat = _targetFormat;
+            var sw = System.Diagnostics.Stopwatch.StartNew();
             var result = await item.Job.ConvertAsync(_encoder);
+            sw.Stop();
+            Logger.LogInformation("Converted {FileName} to {Format} in {Elapsed}ms ({Size})",
+                item.FileName, _targetFormat.Name, sw.ElapsedMilliseconds,
+                FormatInfo.FormatFileSize(result.Size));
             item.Result = result;
             item.Status = ImageItemStatus.Done;
         }

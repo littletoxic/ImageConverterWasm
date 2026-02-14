@@ -1,7 +1,8 @@
 
 <MudCard Elevation="2" Class="d-flex flex-column" Style="height: 100%">
     <div class="d-flex align-center justify-center overflow-hidden"
-         style="height: 160px; background: #f5f5f5;">
+         style="height: 160px; background: #f5f5f5; cursor: pointer;"
+         @onclick="OpenPreview">
         <MudImage Src="@(Item.ThumbnailUrl ?? "")" Alt="@Item.FileName"
                   ObjectFit="ObjectFit.Contain"
                   Style="max-width: 100%; max-height: 100%" />
@@ -83,10 +84,42 @@
     </MudCardActions>
 </MudCard>
 
+<MudOverlay Visible="_previewVisible" DarkBackground="true" AutoClose="true"
+            OnClosed="() => _previewVisible = false"
+            Class="d-flex align-center justify-center">
+    @if (_previewUrl is null)
+    {
+        <MudProgressCircular Indeterminate="true" Color="MudBlazor.Color.Primary" />
+    }
+    else
+    {
+        <MudImage Src="@_previewUrl" Alt="@Item.FileName"
+                  ObjectFit="ObjectFit.Contain"
+                  Style="max-width: 90vw; max-height: 85vh; cursor: pointer;"
+                  @onclick="() => _previewVisible = false" />
+    }
+</MudOverlay>
+
 @code {
     [Parameter, EditorRequired] public required ImageItem Item { get; set; }
     [Parameter] public bool Busy { get; set; }
     [Parameter] public EventCallback<ImageItem> OnConvert { get; set; }
     [Parameter] public EventCallback<ImageItem> OnDownload { get; set; }
     [Parameter] public EventCallback<ImageItem> OnRemove { get; set; }
+
+    private bool _previewVisible;
+    private string? _previewUrl;
+
+    private async Task OpenPreview()
+    {
+        if (Item.Job is not { IsLoaded: true }) return;
+
+        _previewVisible = true;
+        _previewUrl = null;
+        StateHasChanged();
+
+        await Task.Yield();
+        _previewUrl = Item.Job.ToThumbnailDataUrl(1024);
+        StateHasChanged();
+    }
 }
