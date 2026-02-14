@@ -54,7 +54,7 @@
 
     @* Batch Action Toolbar *@
     <MudPaper Class="pa-3 mb-4" Elevation="1">
-        <div class="d-flex flex-column flex-sm-row align-center gap-2">
+        <div class="d-flex flex-column flex-sm-row align-sm-center gap-2">
             @if (_batchConverting)
             {
                 <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Primary" Disabled="true">
@@ -84,7 +84,7 @@
                 清空全部
             </MudButton>
             <MudSpacer />
-            <MudText Typo="Typo.body2" Color="MudBlazor.Color.Secondary">
+            <MudText Typo="Typo.body2" Color="MudBlazor.Color.Secondary" Class="align-self-center">
                 共 @_items.Count 张图像
                 @{
                     var doneCount = _items.Count(i => i.Status == ImageItemStatus.Done);
