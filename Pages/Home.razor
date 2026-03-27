@@ -183,6 +183,8 @@
 
     private void OnTargetFormatChanged()
     {
+        _encoder = null;
+
         foreach (var item in _items)
         {
             if (item.Job is not null)
