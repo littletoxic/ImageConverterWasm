@@ -3,8 +3,8 @@
 @using System.IO.Compression
 @implements IAsyncDisposable
 @inject IJSRuntime JS
-@inject ILogger<Home> Logger
 @inject IFormatCatalog FormatCatalog
+@inject IConversionSession Session
 
 <PageTitle>图像格式转换</PageTitle>
 
@@ -45,7 +45,7 @@
 </MudPaper>
 
 @* === Conversion Settings + Batch Actions + Image Grid === *@
-@if (_items.Count > 0)
+@if (Snapshot.Items.Count > 0)
 {
     <ConversionPanel @bind-TargetFormat="_targetFormat"
                      Formats="FormatCatalog.EncodableFormats"
@@ -86,9 +86,9 @@
             </MudButton>
             <MudSpacer />
             <MudText Typo="Typo.body2" Color="MudBlazor.Color.Secondary" Class="align-self-center">
-                共 @_items.Count 张图像
+                共 @Snapshot.Items.Count 张图像
                 @{
-                    var doneCount = _items.Count(i => i.Status == ImageItemStatus.Done);
+                    var doneCount = Snapshot.Items.Count(i => i.Status == ImageItemStatus.Done);
                 }
                 @if (doneCount > 0)
                 {
@@ -100,7 +100,7 @@
 
     @* Image Grid *@
     <MudGrid Spacing="3">
-        @foreach (var item in _items)
+        @foreach (var item in Snapshot.Items)
         {
             <MudItem xs="12" sm="6" md="4" lg="3">
                 <ImageCard @key="item.Id"
@@ -108,7 +108,8 @@
                            Busy="_batchConverting"
                            OnConvert="ConvertSingle"
                            OnDownload="DownloadSingle"
-                           OnRemove="RemoveItem" />
+                           OnRemove="RemoveItem"
+                           OnPreview="CreatePreview" />
             </MudItem>
         }
     </MudGrid>
@@ -117,22 +118,20 @@
 @code {
     private const string DefaultDragClass =
         "relative rounded-lg border-2 border-dashed pa-4 d-flex flex-column align-center justify-center gap-2";
-    private const long MaxFileSize = 50 * 1024 * 1024;
-
     private bool _dragging;
-    private readonly List<ImageItem> _items = new();
     private ImageFormatDescriptor _targetFormat = default!;
-    private IImageEncoder? _encoder;
     private IJSObjectReference? _jsModule;
     private bool _batchConverting;
     private int _convertedCount;
     private int _totalToConvert;
 
+    private ConversionSessionSnapshot Snapshot => Session.Snapshot;
+
     private bool HasLoadedItems =>
-        _items.Any(i => i.Job is { IsLoaded: true });
+        Snapshot.Items.Any(i => i.CanConvert);
 
     private bool HasDownloadableItems =>
-        _items.Any(i => i.Status is ImageItemStatus.Done);
+        Snapshot.Items.Any(i => i.CanDownload);
 
     private string GetDragClass() =>
         _dragging ? $"{DefaultDragClass} mud-border-primary" : DefaultDragClass;
@@ -143,6 +142,7 @@
     protected override void OnInitialized()
     {
         _targetFormat = FormatCatalog.DefaultTargetFormat;
+        Session.SetTargetFormat(_targetFormat.Id);
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -157,95 +157,46 @@
     private void OnFilesChanged(InputFileChangeEventArgs e)
     {
         ClearDragClass();
-        var newFiles = e.GetMultipleFiles(maximumFileCount: 100);
-        foreach (var file in newFiles)
-        {
-            var item = new ImageItem(file);
-            _items.Add(item);
-            _ = LoadItemAsync(item);
-        }
+        var newFiles = e.GetMultipleFiles(maximumFileCount: 100)
+            .Select(file => new BrowserImageFile(
+                file.Name,
+                file.Size,
+                maxFileSize => file.OpenReadStream(maxFileSize)))
+            .ToList();
+
+        var result = Session.AddFiles(newFiles);
+        if (result is AddFilesSucceeded succeeded)
+            foreach (var itemId in succeeded.ItemIds)
+                _ = LoadItemAsync(itemId);
     }
 
-    private async Task LoadItemAsync(ImageItem item)
+    private async Task LoadItemAsync(Guid itemId)
     {
-        try
-        {
-            item.Job = new ImageDocument(item.FileName, _targetFormat.Id, FormatCatalog);
-            await using var stream = item.BrowserFile.OpenReadStream(MaxFileSize);
-            await item.Job.LoadAsync(stream);
-            item.ThumbnailUrl = item.Job.ToThumbnailDataUrl();
-            item.Status = ImageItemStatus.Pending;
-        }
-        catch (Exception ex)
-        {
-            item.Status = ImageItemStatus.Error;
-            item.ErrorMessage = $"加载失败：{ex.Message}";
-            Logger.LogError(ex, "Failed to load {FileName}", item.FileName);
-        }
+        await Session.LoadImageAsync(itemId);
         StateHasChanged();
     }
 
     private void OnTargetFormatChanged()
     {
-        _encoder = null;
-
-        foreach (var item in _items)
-        {
-            if (item.Job is not null)
-                item.Job.TargetFormatId = _targetFormat.Id;
-            if (item.Status == ImageItemStatus.Done)
-            {
-                item.Result?.Stream.Dispose();
-                item.Result = null;
-                item.Status = ImageItemStatus.Pending;
-            }
-        }
+        Session.SetTargetFormat(_targetFormat.Id);
     }
 
     private void OnEncoderChanged(IImageEncoder encoder) =>
-        _encoder = encoder;
+        Session.UpdateEncoder(new ImageSharpCustomEncoder(encoder));
 
-    private async Task ConvertSingle(ImageItem item)
+    private async Task ConvertSingle(Guid itemId)
     {
-        if (item.Job is not { IsLoaded: true }) return;
-
-        item.Status = ImageItemStatus.Converting;
-        item.ErrorMessage = null;
-        item.Result?.Stream.Dispose();
-        item.Result = null;
+        var convertTask = Session.ConvertImageAsync(itemId);
         StateHasChanged();
-
-        try
-        {
-            item.Job.TargetFormatId = _targetFormat.Id;
-            var sw = System.Diagnostics.Stopwatch.StartNew();
-            var result = await item.Job.ConvertAsync(_encoder);
-            sw.Stop();
-            Logger.LogInformation("Converted {FileName} to {Format} in {Elapsed}ms ({Size})",
-                item.FileName, _targetFormat.Name, sw.ElapsedMilliseconds,
-                FormatInfo.FormatFileSize(result.Size));
-            item.Result = result;
-            item.Status = ImageItemStatus.Done;
-        }
-        catch (OutOfMemoryException)
-        {
-            item.Status = ImageItemStatus.Error;
-            item.ErrorMessage = "内存不足，请尝试较小的图像。";
-            Logger.LogError("OutOfMemoryException during conversion: {FileName}", item.FileName);
-        }
-        catch (Exception ex)
-        {
-            item.Status = ImageItemStatus.Error;
-            item.ErrorMessage = $"转换失败：{ex.Message}";
-            Logger.LogError(ex, "Conversion failed for {FileName}", item.FileName);
-        }
+        await convertTask;
         StateHasChanged();
     }
 
     private async Task ConvertAll()
     {
-        var toConvert = _items
-            .Where(i => i.Job is { IsLoaded: true })
+        var toConvert = Snapshot.Items
+            .Where(i => i.CanConvert)
+            .Select(i => i.Id)
             .ToList();
 
         _batchConverting = true;
@@ -253,10 +204,10 @@
         _totalToConvert = toConvert.Count;
         StateHasChanged();
 
-        foreach (var item in toConvert)
+        foreach (var itemId in toConvert)
         {
             await Task.Yield();
-            await ConvertSingle(item);
+            await ConvertSingle(itemId);
             _convertedCount++;
             StateHasChanged();
         }
@@ -265,20 +216,22 @@
         StateHasChanged();
     }
 
-    private async Task DownloadSingle(ImageItem item)
+    private async Task DownloadSingle(Guid itemId)
     {
-        if (item.Result is null || _jsModule is null) return;
-        item.Result.Stream.Position = 0;
-        using var streamRef = new DotNetStreamReference(item.Result.Stream, leaveOpen: true);
+        if (_jsModule is null) return;
+        if (Session.OpenConvertedImage(itemId) is not OpenConvertedImageSucceeded download)
+            return;
+
+        using var streamRef = new DotNetStreamReference(download.Stream, leaveOpen: true);
         await _jsModule.InvokeVoidAsync("downloadFileFromStream",
-            item.Result.OutputFileName, streamRef);
+            download.OutputFileName, streamRef);
     }
 
     private async Task DownloadAll()
     {
         if (_jsModule is null) return;
-        var doneItems = _items
-            .Where(i => i.Status == ImageItemStatus.Done && i.Result is not null)
+        var doneItems = Snapshot.Items
+            .Where(i => i.CanDownload)
             .ToList();
         if (doneItems.Count == 0) return;
 
@@ -287,10 +240,12 @@
         {
             foreach (var item in doneItems)
             {
-                var entry = archive.CreateEntry(item.Result!.OutputFileName, CompressionLevel.NoCompression);
+                if (Session.OpenConvertedImage(item.Id) is not OpenConvertedImageSucceeded download)
+                    continue;
+
+                var entry = archive.CreateEntry(download.OutputFileName, CompressionLevel.NoCompression);
                 await using var entryStream = entry.Open();
-                item.Result.Stream.Position = 0;
-                await item.Result.Stream.CopyToAsync(entryStream);
+                await download.Stream.CopyToAsync(entryStream);
             }
         }
 
@@ -299,24 +254,27 @@
         await _jsModule.InvokeVoidAsync("downloadFileFromStream", "converted-images.zip", streamRef);
     }
 
-    private void RemoveItem(ImageItem item)
+    private async Task<string?> CreatePreview(Guid itemId)
     {
-        _items.Remove(item);
-        item.Dispose();
+        await Task.Yield();
+        return Session.CreatePreview(itemId, 1024) switch
+        {
+            CreatePreviewSucceeded preview => preview.DataUrl,
+            _ => null
+        };
     }
+
+    private void RemoveItem(Guid itemId) =>
+        Session.RemoveItem(itemId);
 
     private void ClearAll()
     {
-        foreach (var item in _items)
-            item.Dispose();
-        _items.Clear();
+        Session.Clear();
     }
 
     async ValueTask IAsyncDisposable.DisposeAsync()
     {
-        foreach (var item in _items)
-            item.Dispose();
-        _items.Clear();
+        Session.Clear();
 
         if (_jsModule is not null)
             await _jsModule.DisposeAsync();

@@ -18,10 +18,10 @@
             <MudText Typo="Typo.caption" Color="MudBlazor.Color.Secondary">
                 @FormatInfo.FormatFileSize(Item.FileSize)
             </MudText>
-            @if (Item.Job is { IsLoaded: true })
+            @if (Item.Width > 0 && Item.Height > 0)
             {
                 <MudText Typo="Typo.caption" Color="MudBlazor.Color.Secondary">
-                    @(Item.Job.Width)x@(Item.Job.Height)
+                    @(Item.Width)x@(Item.Height)
                 </MudText>
             }
         </MudStack>
@@ -45,7 +45,7 @@
             case ImageItemStatus.Done:
                 <MudChip T="string" Size="MudBlazor.Size.Small" Color="MudBlazor.Color.Success"
                          Class="mt-2">
-                    已完成 (@FormatInfo.FormatFileSize(Item.Result?.Size ?? 0))
+                    已完成 (@FormatInfo.FormatFileSize(Item.ResultSize ?? 0))
                 </MudChip>
                 break;
             case ImageItemStatus.Error:
@@ -63,23 +63,23 @@
             <MudIconButton Icon="@Icons.Material.Filled.Transform"
                            Color="MudBlazor.Color.Primary"
                            Size="MudBlazor.Size.Small"
-                           Disabled="@(Busy || Item.Status is not ImageItemStatus.Pending and not ImageItemStatus.Done and not ImageItemStatus.Error)"
-                           OnClick="() => OnConvert.InvokeAsync(Item)" />
+                           Disabled="@(Busy || !Item.CanConvert)"
+                           OnClick="() => OnConvert.InvokeAsync(Item.Id)" />
         </MudTooltip>
         <MudTooltip Text="下载">
             <MudIconButton Icon="@Icons.Material.Filled.Download"
                            Color="MudBlazor.Color.Primary"
                            Size="MudBlazor.Size.Small"
-                           Disabled="@(Item.Status is not ImageItemStatus.Done)"
-                           OnClick="() => OnDownload.InvokeAsync(Item)" />
+                           Disabled="@(!Item.CanDownload)"
+                           OnClick="() => OnDownload.InvokeAsync(Item.Id)" />
         </MudTooltip>
         <MudSpacer />
         <MudTooltip Text="移除">
             <MudIconButton Icon="@Icons.Material.Filled.Close"
                            Color="MudBlazor.Color.Error"
                            Size="MudBlazor.Size.Small"
-                           Disabled="Busy"
-                           OnClick="() => OnRemove.InvokeAsync(Item)" />
+                           Disabled="@(Busy || !Item.CanRemove)"
+                           OnClick="() => OnRemove.InvokeAsync(Item.Id)" />
         </MudTooltip>
     </MudCardActions>
 </MudCard>
@@ -101,11 +101,12 @@
 </MudOverlay>
 
 @code {
-    [Parameter, EditorRequired] public required ImageItem Item { get; set; }
+    [Parameter, EditorRequired] public required ImageItemSnapshot Item { get; set; }
     [Parameter] public bool Busy { get; set; }
-    [Parameter] public EventCallback<ImageItem> OnConvert { get; set; }
-    [Parameter] public EventCallback<ImageItem> OnDownload { get; set; }
-    [Parameter] public EventCallback<ImageItem> OnRemove { get; set; }
+    [Parameter] public EventCallback<Guid> OnConvert { get; set; }
+    [Parameter] public EventCallback<Guid> OnDownload { get; set; }
+    [Parameter] public EventCallback<Guid> OnRemove { get; set; }
+    [Parameter] public Func<Guid, Task<string?>>? OnPreview { get; set; }
 
     private bool _previewVisible;
     private string? _previewUrl;
@@ -113,14 +114,13 @@
 
     private async Task OpenPreview()
     {
-        if (Item.Job is not { IsLoaded: true }) return;
+        if (OnPreview is null || Item.Width == 0 || Item.Height == 0) return;
 
         _previewVisible = true;
         _previewUrl = null;
         StateHasChanged();
 
-        await Task.Yield();
-        _previewUrl = Item.Job.ToThumbnailDataUrl(1024);
+        _previewUrl = await OnPreview(Item.Id);
         StateHasChanged();
     }
 }

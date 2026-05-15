@@ -1,5 +1,4 @@
 using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Processing;
 
@@ -24,14 +23,12 @@ public sealed class ImageDocument(
         _image = await Image.LoadAsync(stream);
     }
 
-    public async Task<ConversionResult> ConvertAsync(IImageEncoder? encoder)
+    public async Task<ConversionResult> ConvertAsync(IImageFormatEncoder? encoder)
     {
         if (_image is null)
             throw new InvalidOperationException("Image not loaded.");
 
-        var formatEncoder = encoder is null
-            ? formatCatalog.GetEncoder(TargetFormatId)
-            : new ImageSharpEncoderAdapter(encoder);
+        var formatEncoder = encoder ?? formatCatalog.GetEncoder(TargetFormatId);
 
         var outputStream = new MemoryStream();
         await formatEncoder.SaveAsync(_image, outputStream);
@@ -62,10 +59,3 @@ public sealed class ImageDocument(
 }
 
 public record ConversionResult(MemoryStream Stream, string OutputFileName, long Size);
-
-internal sealed class ImageSharpEncoderAdapter(SixLabors.ImageSharp.Formats.IImageEncoder inner)
-    : IImageFormatEncoder
-{
-    public Task SaveAsync(Image image, Stream stream) =>
-        image.SaveAsync(stream, inner);
-}
