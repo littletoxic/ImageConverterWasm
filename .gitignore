@@ -13,6 +13,9 @@ obj/
 *.nupkg
 packages/
 
+## Local licenses
+sixlabors.lic
+
 ## IDE
 .idea/
 *.swp

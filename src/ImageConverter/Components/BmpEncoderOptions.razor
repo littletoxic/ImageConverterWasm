@@ -6,10 +6,10 @@
 <MudSelect T="BmpBitsPerPixel?" @bind-Value="_bitsPerPixel" @bind-Value:after="NotifyEncoderChanged"
            Label="位深度" Variant="Variant.Outlined" Class="mb-4">
     <MudSelectItem T="BmpBitsPerPixel?" Value="@((BmpBitsPerPixel?)null)">自动</MudSelectItem>
-    <MudSelectItem T="BmpBitsPerPixel?" Value="BmpBitsPerPixel.Pixel8">8 位（256 色）</MudSelectItem>
-    <MudSelectItem T="BmpBitsPerPixel?" Value="BmpBitsPerPixel.Pixel16">16 位</MudSelectItem>
-    <MudSelectItem T="BmpBitsPerPixel?" Value="BmpBitsPerPixel.Pixel24">24 位</MudSelectItem>
-    <MudSelectItem T="BmpBitsPerPixel?" Value="BmpBitsPerPixel.Pixel32">32 位</MudSelectItem>
+    <MudSelectItem T="BmpBitsPerPixel?" Value="BmpBitsPerPixel.Bit8">8 位（256 色）</MudSelectItem>
+    <MudSelectItem T="BmpBitsPerPixel?" Value="BmpBitsPerPixel.Bit16">16 位</MudSelectItem>
+    <MudSelectItem T="BmpBitsPerPixel?" Value="BmpBitsPerPixel.Bit24">24 位</MudSelectItem>
+    <MudSelectItem T="BmpBitsPerPixel?" Value="BmpBitsPerPixel.Bit32">32 位</MudSelectItem>
 </MudSelect>
 
 <MudSwitch T="bool" @bind-Value="_supportTransparency" @bind-Value:after="NotifyEncoderChanged"

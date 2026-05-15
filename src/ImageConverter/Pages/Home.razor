@@ -23,13 +23,12 @@
                    OnFilesChanged="OnFilesChanged"
                    MaximumFileCount="100"
                    Hidden="false"
-                   InputClass="absolute mud-width-full mud-height-full overflow-hidden z-10"
-                   InputStyle="opacity: 0"
+                   InputClass="absolute mud-width-full mud-height-full overflow-hidden z-10 image-upload-input"
                    @ondrop="ClearDragClass"
                    @ondragenter="SetDragClass"
                    @ondragleave="ClearDragClass"
                    @ondragend="ClearDragClass">
-        <ActivatorContent>
+        <CustomContent>
             <MudPaper Outlined="true"
                       Class="@GetDragClass()"
                       Style="min-height: 160px; cursor: pointer;">
@@ -40,7 +39,7 @@
                     支持 @string.Join(", ", FormatCatalog.EncodableFormats.Select(f => f.Name))
                 </MudText>
             </MudPaper>
-        </ActivatorContent>
+        </CustomContent>
     </MudFileUpload>
 </MudPaper>
 

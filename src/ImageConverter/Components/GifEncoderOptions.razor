@@ -3,15 +3,15 @@
 @attribute [FormatEncoder(KnownFormatIds.Gif)]
 @inherits EncoderOptionsBase
 
-<MudSelect T="GifColorTableMode?" @bind-Value="_colorTableMode" @bind-Value:after="NotifyEncoderChanged"
+<MudSelect T="FrameColorTableMode?" @bind-Value="_colorTableMode" @bind-Value:after="NotifyEncoderChanged"
            Label="颜色表模式" Variant="Variant.Outlined" Class="mb-4">
-    <MudSelectItem T="GifColorTableMode?" Value="@((GifColorTableMode?)null)">自动</MudSelectItem>
-    <MudSelectItem T="GifColorTableMode?" Value="GifColorTableMode.Global">全局</MudSelectItem>
-    <MudSelectItem T="GifColorTableMode?" Value="GifColorTableMode.Local">逐帧</MudSelectItem>
+    <MudSelectItem T="FrameColorTableMode?" Value="@((FrameColorTableMode?)null)">自动</MudSelectItem>
+    <MudSelectItem T="FrameColorTableMode?" Value="FrameColorTableMode.Global">全局</MudSelectItem>
+    <MudSelectItem T="FrameColorTableMode?" Value="FrameColorTableMode.Local">逐帧</MudSelectItem>
 </MudSelect>
 
 @code {
-    private GifColorTableMode? _colorTableMode;
+    private FrameColorTableMode? _colorTableMode;
 
     protected override IImageEncoder BuildEncoder() =>
         new GifEncoder

@@ -42,10 +42,10 @@
             }
         }
 
-        <MudSelect T="WebpTransparentColorMode" @bind-Value="_transparentColorMode" @bind-Value:after="NotifyEncoderChanged"
+        <MudSelect T="TransparentColorMode" @bind-Value="_transparentColorMode" @bind-Value:after="NotifyEncoderChanged"
                    Label="透明色处理" Variant="Variant.Outlined" Class="mb-4">
-            <MudSelectItem T="WebpTransparentColorMode" Value="WebpTransparentColorMode.Preserve">保留</MudSelectItem>
-            <MudSelectItem T="WebpTransparentColorMode" Value="WebpTransparentColorMode.Clear">清除</MudSelectItem>
+            <MudSelectItem T="TransparentColorMode" Value="TransparentColorMode.Preserve">保留</MudSelectItem>
+            <MudSelectItem T="TransparentColorMode" Value="TransparentColorMode.Clear">清除</MudSelectItem>
         </MudSelect>
         </ChildContent>
     </MudExpansionPanel>
@@ -58,7 +58,7 @@
     private int _filterStrength = 60;
     private bool _nearLossless;
     private int _nearLosslessQuality = 60;
-    private WebpTransparentColorMode _transparentColorMode = WebpTransparentColorMode.Preserve;
+    private TransparentColorMode _transparentColorMode = TransparentColorMode.Preserve;
 
     protected override IImageEncoder BuildEncoder() =>
         new WebpEncoder

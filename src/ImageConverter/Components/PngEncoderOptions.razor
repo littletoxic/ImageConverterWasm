@@ -51,10 +51,10 @@
             <MudSelectItem T="PngFilterMethod?" Value="PngFilterMethod.Adaptive">Adaptive</MudSelectItem>
         </MudSelect>
 
-        <MudSelect T="PngTransparentColorMode" @bind-Value="_transparentColorMode" @bind-Value:after="NotifyEncoderChanged"
+        <MudSelect T="TransparentColorMode" @bind-Value="_transparentColorMode" @bind-Value:after="NotifyEncoderChanged"
                    Label="透明色处理" Variant="Variant.Outlined" Class="mb-4">
-            <MudSelectItem T="PngTransparentColorMode" Value="PngTransparentColorMode.Preserve">保留</MudSelectItem>
-            <MudSelectItem T="PngTransparentColorMode" Value="PngTransparentColorMode.Clear">清除为透明黑</MudSelectItem>
+            <MudSelectItem T="TransparentColorMode" Value="TransparentColorMode.Preserve">保留</MudSelectItem>
+            <MudSelectItem T="TransparentColorMode" Value="TransparentColorMode.Clear">清除为透明黑</MudSelectItem>
         </MudSelect>
         </ChildContent>
     </MudExpansionPanel>
@@ -66,7 +66,7 @@
     private bool _interlace;
     private PngBitDepth? _bitDepth;
     private PngFilterMethod? _filterMethod;
-    private PngTransparentColorMode _transparentColorMode = PngTransparentColorMode.Preserve;
+    private TransparentColorMode _transparentColorMode = TransparentColorMode.Preserve;
 
     protected override IImageEncoder BuildEncoder() =>
         new PngEncoder

@@ -13,10 +13,17 @@ public sealed class ImageSharpFormatCatalog : IFormatCatalog
         var formats = Configuration.Default.ImageFormats
             .Where(CanEncode)
             .OrderBy(f => f.Name)
+            .GroupBy(GetId)
+            .Select(g => new ImageSharpFormatEntry(
+                g.Key,
+                g.First(),
+                g.First().Name,
+                [.. g.SelectMany(f => f.FileExtensions)
+                    .Distinct(StringComparer.OrdinalIgnoreCase)]))
             .ToArray();
 
         EncodableFormats = [.. formats.Select(CreateDescriptor)];
-        _formatsById = formats.ToDictionary(GetId, f => f);
+        _formatsById = formats.ToDictionary(f => f.Id, f => f.Format);
         DefaultTargetFormat = EncodableFormats.FirstOrDefault(f => f.Id.Value == KnownFormatIds.Png)
             ?? EncodableFormats[0];
         AcceptExtensions = string.Join(",",
@@ -50,8 +57,8 @@ public sealed class ImageSharpFormatCatalog : IFormatCatalog
         }
     }
 
-    private static ImageFormatDescriptor CreateDescriptor(IImageFormat format) =>
-        new(GetId(format), format.Name, [.. format.FileExtensions]);
+    private static ImageFormatDescriptor CreateDescriptor(ImageSharpFormatEntry format) =>
+        new(format.Id, format.Name, format.FileExtensions);
 
     private static FormatId GetId(IImageFormat format) =>
         new(format switch
@@ -68,6 +75,12 @@ public sealed class ImageSharpFormatCatalog : IFormatCatalog
         _formatsById.TryGetValue(formatId, out var format)
             ? format
             : throw new ArgumentException($"Unknown image format '{formatId}'.", nameof(formatId));
+
+    private sealed record ImageSharpFormatEntry(
+        FormatId Id,
+        IImageFormat Format,
+        string Name,
+        IReadOnlyList<string> FileExtensions);
 
     private sealed class ImageSharpFormatEncoder(IImageEncoder inner) : IImageFormatEncoder
     {

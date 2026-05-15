@@ -40,6 +40,8 @@ jobs:
 
       - name: Publish app
         run: dotnet publish src/ImageConverter/ImageConverter.csproj -c Release
+        env:
+          SIXLABORS_LICENSE_KEY: ${{ secrets.SIXLABORS_LICENSE_KEY }}
 
       - name: Rewrite base href
         uses: SteveSandersonMS/ghaction-rewrite-base-href@v1

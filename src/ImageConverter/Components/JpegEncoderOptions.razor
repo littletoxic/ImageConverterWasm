@@ -16,13 +16,13 @@
             </div>
         </TitleContent>
         <ChildContent>
-        <MudSelect T="JpegEncodingColor?" @bind-Value="_colorType" @bind-Value:after="NotifyEncoderChanged"
+        <MudSelect T="JpegColorType?" @bind-Value="_colorType" @bind-Value:after="NotifyEncoderChanged"
                    Label="色彩编码" Variant="Variant.Outlined" Class="mb-4">
-            <MudSelectItem T="JpegEncodingColor?" Value="@((JpegEncodingColor?)null)">自动</MudSelectItem>
-            <MudSelectItem T="JpegEncodingColor?" Value="JpegEncodingColor.YCbCrRatio444">YCbCr 4:4:4（高质量）</MudSelectItem>
-            <MudSelectItem T="JpegEncodingColor?" Value="JpegEncodingColor.YCbCrRatio420">YCbCr 4:2:0（更小）</MudSelectItem>
-            <MudSelectItem T="JpegEncodingColor?" Value="JpegEncodingColor.Luminance">灰度</MudSelectItem>
-            <MudSelectItem T="JpegEncodingColor?" Value="JpegEncodingColor.Rgb">RGB</MudSelectItem>
+            <MudSelectItem T="JpegColorType?" Value="@((JpegColorType?)null)">自动</MudSelectItem>
+            <MudSelectItem T="JpegColorType?" Value="JpegColorType.YCbCrRatio444">YCbCr 4:4:4（高质量）</MudSelectItem>
+            <MudSelectItem T="JpegColorType?" Value="JpegColorType.YCbCrRatio420">YCbCr 4:2:0（更小）</MudSelectItem>
+            <MudSelectItem T="JpegColorType?" Value="JpegColorType.Luminance">灰度</MudSelectItem>
+            <MudSelectItem T="JpegColorType?" Value="JpegColorType.Rgb">RGB</MudSelectItem>
         </MudSelect>
         </ChildContent>
     </MudExpansionPanel>
@@ -30,7 +30,7 @@
 
 @code {
     private int _quality = 90;
-    private JpegEncodingColor? _colorType;
+    private JpegColorType? _colorType;
 
     protected override IImageEncoder BuildEncoder() =>
         new JpegEncoder
