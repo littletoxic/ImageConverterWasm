@@ -7,7 +7,13 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <OverrideHtmlAssetPlaceholders>true</OverrideHtmlAssetPlaceholders>
-    <RunAOTCompilation Condition="'$(Configuration)' == 'Release'">false</RunAOTCompilation>
+    <!--
+      WASM AOT currently crashes in the browser on .NET 11 preview with
+      "MONO_WASM: function signature mismatch" / load_aot_module failures.
+      Keep this proof-of-concept on the interpreter until the runtime stack
+      is stable enough to revisit AOT, likely with CoreCLR-on-WASM progress.
+    -->
+    <!-- <RunAOTCompilation Condition="'$(Configuration)' == 'Release'">true</RunAOTCompilation> -->
   </PropertyGroup>
 
   <ItemGroup>
