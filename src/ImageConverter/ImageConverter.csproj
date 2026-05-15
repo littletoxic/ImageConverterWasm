@@ -9,7 +9,6 @@
     <OverrideHtmlAssetPlaceholders>true</OverrideHtmlAssetPlaceholders>
     <RunAOTCompilation Condition="'$(Configuration)' == 'Release'">true</RunAOTCompilation>
     <WasmStripILAfterAOT Condition="'$(Configuration)' == 'Release'">true</WasmStripILAfterAOT>
-    <DefaultItemExcludes>$(DefaultItemExcludes);tests\**\*</DefaultItemExcludes>
   </PropertyGroup>
 
   <ItemGroup>

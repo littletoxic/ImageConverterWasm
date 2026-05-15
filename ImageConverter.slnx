@@ -1,4 +1,4 @@
 <Solution>
-  <Project Path="ImageConverter.csproj" />
+  <Project Path="src\ImageConverter\ImageConverter.csproj" />
   <Project Path="tests\ImageConverter.Tests\ImageConverter.Tests.csproj" />
 </Solution>

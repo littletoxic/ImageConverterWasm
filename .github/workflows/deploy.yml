@@ -1,6 +1,6 @@
 name: Deploy to GitHub Pages
 env:
-  PUBLISH_DIR: bin/Release/net11.0/publish/wwwroot
+  PUBLISH_DIR: src/ImageConverter/bin/Release/net11.0/publish/wwwroot
 
 on:
   push:
@@ -39,7 +39,7 @@ jobs:
         run: dotnet workload install wasm-tools
 
       - name: Publish app
-        run: dotnet publish ImageConverter.csproj -c Release
+        run: dotnet publish src/ImageConverter/ImageConverter.csproj -c Release
 
       - name: Rewrite base href
         uses: SteveSandersonMS/ghaction-rewrite-base-href@v1
