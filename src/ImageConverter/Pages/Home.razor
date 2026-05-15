@@ -61,7 +61,7 @@
             {
                 <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Primary" Disabled="true">
                     <MudProgressCircular Size="MudBlazor.Size.Small" Indeterminate="true" Class="mr-2" />
-                    批量转换中 (@_convertedCount/@_totalToConvert)...
+                    批量转换中 (@Snapshot.Batch.ConvertedCount/@Snapshot.Batch.TotalCount)...
                 </MudButton>
             }
             else
@@ -76,13 +76,13 @@
             <MudButton Variant="Variant.Outlined" Color="MudBlazor.Color.Primary"
                        StartIcon="@Icons.Material.Filled.Download"
                        OnClick="DownloadAll"
-                       Disabled="@(!HasDownloadableItems || _batchConverting)">
+                       Disabled="@(!HasDownloadableItems || Snapshot.Batch.IsConverting)">
                 全部下载 (ZIP)
             </MudButton>
             <MudButton Variant="Variant.Text" Color="MudBlazor.Color.Error"
                        StartIcon="@Icons.Material.Filled.DeleteSweep"
                        OnClick="ClearAll"
-                       Disabled="_batchConverting">
+                       Disabled="Snapshot.Batch.IsConverting">
                 清空全部
             </MudButton>
             <MudSpacer />
@@ -106,7 +106,7 @@
             <MudItem xs="12" sm="6" md="4" lg="3">
                 <ImageCard @key="item.Id"
                            Item="item"
-                           Busy="_batchConverting"
+                           Busy="Snapshot.Batch.IsConverting"
                            OnConvert="ConvertSingle"
                            OnDownload="DownloadSingle"
                            OnRemove="RemoveItem"
@@ -122,11 +122,9 @@
     private bool _dragging;
     private ImageFormatDescriptor _targetFormat = default!;
     private IJSObjectReference? _jsModule;
-    private bool _batchConverting;
-    private int _convertedCount;
-    private int _totalToConvert;
 
     private ConversionSessionSnapshot Snapshot => Session.Snapshot;
+    private bool _batchConverting => Snapshot.Batch.IsConverting;
 
     private bool HasLoadedItems =>
         Snapshot.Items.Any(i => i.CanConvert);
@@ -195,26 +193,7 @@
 
     private async Task ConvertAll()
     {
-        var toConvert = Snapshot.Items
-            .Where(i => i.CanConvert)
-            .Select(i => i.Id)
-            .ToList();
-
-        _batchConverting = true;
-        _convertedCount = 0;
-        _totalToConvert = toConvert.Count;
-        StateHasChanged();
-
-        foreach (var itemId in toConvert)
-        {
-            await Task.Yield();
-            await ConvertSingle(itemId);
-            _convertedCount++;
-            StateHasChanged();
-        }
-
-        _batchConverting = false;
-        StateHasChanged();
+        await Session.ConvertAllAsync(StateHasChanged);
     }
 
     private async Task DownloadSingle(Guid itemId)

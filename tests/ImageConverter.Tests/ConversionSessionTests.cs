@@ -64,6 +64,77 @@ public sealed class ConversionSessionTests
     }
 
     [Fact]
+    public async Task ConvertAll_ProcessesConvertibleItemsAndReportsProgress()
+    {
+        var session = CreateSession();
+        var firstId = AddLoadedImage(session, "first.png", CreatePngBytes(width: 1, height: 1));
+        var secondId = AddLoadedImage(session, "second.png", CreatePngBytes(width: 2, height: 2));
+        await Task.WhenAll(session.LoadImageAsync(firstId), session.LoadImageAsync(secondId));
+
+        var progress = new List<BatchConversionSnapshot>();
+
+        var result = await session.ConvertAllAsync(() => progress.Add(session.Snapshot.Batch));
+
+        var succeeded = Assert.IsType<ConvertAllSucceeded>(result.Value);
+        Assert.Equal(2, succeeded.ConvertedCount);
+        Assert.Contains(progress, p => p is { IsConverting: true, ConvertedCount: 0, TotalCount: 2 });
+        Assert.Contains(progress, p => p is { IsConverting: true, ConvertedCount: 1, TotalCount: 2 });
+        Assert.Contains(progress, p => p is { IsConverting: true, ConvertedCount: 2, TotalCount: 2 });
+        Assert.Equal(new BatchConversionSnapshot(false, 2, 2), session.Snapshot.Batch);
+        Assert.All(session.Snapshot.Items, item => Assert.Equal(ImageItemStatus.Done, item.Status));
+        Assert.Equal(firstId, Assert.IsType<OpenConvertedImageSucceeded>(session.OpenConvertedImage(firstId).Value).ItemId);
+        Assert.Equal(secondId, Assert.IsType<OpenConvertedImageSucceeded>(session.OpenConvertedImage(secondId).Value).ItemId);
+    }
+
+    [Fact]
+    public async Task SetTargetFormat_ResetsCompletedResultsAndDisposesConvertedStream()
+    {
+        var session = CreateSession();
+        var itemId = AddLoadedImage(session, "source.png", CreatePngBytes(width: 1, height: 1));
+        await session.LoadImageAsync(itemId);
+        await session.ConvertImageAsync(itemId);
+        var stream = Assert.IsType<OpenConvertedImageSucceeded>(session.OpenConvertedImage(itemId).Value).Stream;
+
+        session.SetTargetFormat(new FormatId(KnownFormatIds.Webp));
+
+        var item = Assert.Single(session.Snapshot.Items);
+        Assert.Equal(ImageItemStatus.Pending, item.Status);
+        Assert.False(item.CanDownload);
+        Assert.Throws<ObjectDisposedException>(() => stream.WriteByte(1));
+    }
+
+    [Fact]
+    public async Task RemoveItem_DisposesConvertedResult()
+    {
+        var session = CreateSession();
+        var itemId = AddLoadedImage(session, "source.png", CreatePngBytes(width: 1, height: 1));
+        await session.LoadImageAsync(itemId);
+        await session.ConvertImageAsync(itemId);
+        var stream = Assert.IsType<OpenConvertedImageSucceeded>(session.OpenConvertedImage(itemId).Value).Stream;
+
+        var result = session.RemoveItem(itemId);
+
+        Assert.IsType<RemoveItemSucceeded>(result.Value);
+        Assert.Empty(session.Snapshot.Items);
+        Assert.Throws<ObjectDisposedException>(() => stream.WriteByte(1));
+    }
+
+    [Fact]
+    public async Task Clear_DisposesConvertedResultsAndRemovesItems()
+    {
+        var session = CreateSession();
+        var itemId = AddLoadedImage(session, "source.png", CreatePngBytes(width: 1, height: 1));
+        await session.LoadImageAsync(itemId);
+        await session.ConvertImageAsync(itemId);
+        var stream = Assert.IsType<OpenConvertedImageSucceeded>(session.OpenConvertedImage(itemId).Value).Stream;
+
+        session.Clear();
+
+        Assert.Empty(session.Snapshot.Items);
+        Assert.Throws<ObjectDisposedException>(() => stream.WriteByte(1));
+    }
+
+    [Fact]
     public async Task LoadImageFailure_UpdatesErrorSnapshot()
     {
         var session = CreateSession();
@@ -81,6 +152,10 @@ public sealed class ConversionSessionTests
 
     private static ConversionSession CreateSession() =>
         new(new ImageSharpFormatCatalog(), NullLogger<ConversionSession>.Instance);
+
+    private static Guid AddLoadedImage(ConversionSession session, string fileName, byte[] bytes) =>
+        SingleAddedId(session.AddFiles(
+            [new BrowserImageFile(fileName, bytes.Length, _ => new MemoryStream(bytes))]));
 
     private static Guid SingleAddedId(AddFilesResult result) =>
         Assert.Single(Assert.IsType<AddFilesSucceeded>(result.Value).ItemIds);

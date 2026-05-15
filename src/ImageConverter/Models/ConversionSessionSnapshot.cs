@@ -3,8 +3,14 @@ namespace ImageConverter.Models;
 public sealed record ConversionSessionSnapshot(
     IReadOnlyList<ImageItemSnapshot> Items,
     FormatId TargetFormatId,
+    BatchConversionSnapshot Batch,
     bool CanConvertAll,
     bool CanDownloadAll);
+
+public sealed record BatchConversionSnapshot(
+    bool IsConverting,
+    int ConvertedCount,
+    int TotalCount);
 
 public sealed record ImageItemSnapshot(
     Guid Id,

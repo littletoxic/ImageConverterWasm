@@ -23,6 +23,12 @@ public union ConvertImageResult(
     ConvertImageOutOfMemory,
     ConvertImageFailed);
 
+public sealed record ConvertAllSucceeded(int ConvertedCount);
+public sealed record ConvertAllAlreadyRunning;
+public union ConvertAllResult(
+    ConvertAllSucceeded,
+    ConvertAllAlreadyRunning);
+
 public sealed record CreatePreviewSucceeded(Guid ItemId, string DataUrl);
 public sealed record CreatePreviewItemNotFound(Guid ItemId);
 public sealed record CreatePreviewNotLoaded(Guid ItemId);

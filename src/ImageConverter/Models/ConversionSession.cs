@@ -10,6 +10,7 @@ public interface IConversionSession
     void SetTargetFormat(FormatId formatId);
     void UpdateEncoder(IImageFormatEncoder? encoder);
     Task<ConvertImageResult> ConvertImageAsync(Guid itemId);
+    Task<ConvertAllResult> ConvertAllAsync(Action? progressChanged = null);
     CreatePreviewResult CreatePreview(Guid itemId, int maxSize);
     OpenConvertedImageResult OpenConvertedImage(Guid itemId);
     RemoveItemResult RemoveItem(Guid itemId);
@@ -25,10 +26,12 @@ public sealed class ConversionSession(
     private readonly List<SessionImageItem> _items = [];
     private FormatId _targetFormatId = formatCatalog.DefaultTargetFormat.Id;
     private IImageFormatEncoder? _encoder;
+    private BatchConversionSnapshot _batch = new(false, 0, 0);
 
     public ConversionSessionSnapshot Snapshot => new(
         [.. _items.Select(CreateSnapshot)],
         _targetFormatId,
+        _batch,
         _items.Any(CanConvert),
         _items.Any(i => i.Status is ImageItemStatus.Done));
 
@@ -133,6 +136,34 @@ public sealed class ConversionSession(
             logger.LogError(ex, "Conversion failed for {FileName}", item.File.FileName);
             return new ConvertImageFailed(itemId, item.ErrorMessage);
         }
+    }
+
+    public async Task<ConvertAllResult> ConvertAllAsync(Action? progressChanged = null)
+    {
+        if (_batch.IsConverting)
+            return new ConvertAllAlreadyRunning();
+
+        var itemIds = _items
+            .Where(CanConvert)
+            .Select(i => i.Id)
+            .ToArray();
+
+        _batch = new BatchConversionSnapshot(true, 0, itemIds.Length);
+        progressChanged?.Invoke();
+
+        var convertedCount = 0;
+        foreach (var itemId in itemIds)
+        {
+            await Task.Yield();
+            await ConvertImageAsync(itemId);
+            convertedCount++;
+            _batch = _batch with { ConvertedCount = convertedCount };
+            progressChanged?.Invoke();
+        }
+
+        _batch = _batch with { IsConverting = false };
+        progressChanged?.Invoke();
+        return new ConvertAllSucceeded(convertedCount);
     }
 
     public CreatePreviewResult CreatePreview(Guid itemId, int maxSize)
