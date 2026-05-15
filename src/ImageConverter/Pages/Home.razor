@@ -22,16 +22,18 @@
                    Accept="@FormatCatalog.AcceptExtensions"
                    OnFilesChanged="OnFilesChanged"
                    MaximumFileCount="100"
-                   Hidden="false"
+                   Hidden="true"
+                   DragAndDrop="true"
                    InputClass="absolute mud-width-full mud-height-full overflow-hidden z-10 image-upload-input"
-                   @ondrop="ClearDragClass"
-                   @ondragenter="SetDragClass"
-                   @ondragleave="ClearDragClass"
-                   @ondragend="ClearDragClass">
-        <CustomContent>
+                   OnDrop="ClearDragClass"
+                   OnDragEnter="SetDragClass"
+                   OnDragLeave="ClearDragClass"
+                   OnDragEnd="ClearDragClass">
+        <CustomContent Context="fileUpload">
             <MudPaper Outlined="true"
                       Class="@GetDragClass()"
-                      Style="min-height: 160px; cursor: pointer;">
+                      Style="min-height: 160px; cursor: pointer;"
+                      @onclick="fileUpload.OpenFilePickerAsync">
                 <MudIcon Icon="@Icons.Material.Filled.CloudUpload"
                          Size="MudBlazor.Size.Large" Color="MudBlazor.Color.Primary" />
                 <MudText Typo="Typo.body1">点击或拖拽图像文件到此处（支持多选）</MudText>
