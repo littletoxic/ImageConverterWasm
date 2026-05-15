@@ -39,7 +39,7 @@ jobs:
         run: dotnet workload install wasm-tools
 
       - name: Publish app
-        run: dotnet publish -c Release
+        run: dotnet publish ImageConverter.csproj -c Release
 
       - name: Rewrite base href
         uses: SteveSandersonMS/ghaction-rewrite-base-href@v1

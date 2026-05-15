@@ -1,13 +1,14 @@
 using System.Reflection;
+using ImageConverter.Models;
 using Microsoft.AspNetCore.Components;
 using SixLabors.ImageSharp.Formats;
 
 namespace ImageConverter.Components;
 
 [AttributeUsage(AttributeTargets.Class)]
-public sealed class FormatEncoderAttribute(Type formatType) : Attribute
+public sealed class FormatEncoderAttribute(string formatId) : Attribute
 {
-    public Type FormatType { get; } = formatType;
+    public FormatId FormatId { get; } = new(formatId);
 }
 
 public abstract class EncoderOptionsBase : ComponentBase
@@ -42,12 +43,12 @@ public abstract class EncoderOptionsBase : ComponentBase
         }
     }
 
-    private static readonly Dictionary<Type, Type> FormatComponentMap =
+    private static readonly Dictionary<FormatId, Type> FormatComponentMap =
         typeof(EncoderOptionsBase).Assembly.GetTypes()
             .Select(t => (Type: t, Attr: t.GetCustomAttribute<FormatEncoderAttribute>()))
             .Where(x => x.Attr is not null)
-            .ToDictionary(x => x.Attr!.FormatType, x => x.Type);
+            .ToDictionary(x => x.Attr!.FormatId, x => x.Type);
 
-    public static Type? GetComponentType(IImageFormat format) =>
-        FormatComponentMap.TryGetValue(format.GetType(), out var type) ? type : null;
+    public static Type? GetComponentType(FormatId formatId) =>
+        FormatComponentMap.TryGetValue(formatId, out var type) ? type : null;
 }

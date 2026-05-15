@@ -1,6 +1,6 @@
 @using SixLabors.ImageSharp.Formats
 @using SixLabors.ImageSharp.Formats.Jpeg
-@attribute [FormatEncoder(typeof(JpegFormat))]
+@attribute [FormatEncoder(KnownFormatIds.Jpeg)]
 @inherits EncoderOptionsBase
 
 <MudText Typo="Typo.body2" Class="mb-2">JPEG 质量：@_quality</MudText>

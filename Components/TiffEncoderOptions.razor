@@ -1,7 +1,7 @@
 @using SixLabors.ImageSharp.Formats
 @using SixLabors.ImageSharp.Formats.Tiff
 @using SixLabors.ImageSharp.Formats.Tiff.Constants
-@attribute [FormatEncoder(typeof(TiffFormat))]
+@attribute [FormatEncoder(KnownFormatIds.Tiff)]
 @inherits EncoderOptionsBase
 
 <MudSelect T="TiffCompression?" @bind-Value="_compression" @bind-Value:after="NotifyEncoderChanged"

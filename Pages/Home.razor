@@ -1,10 +1,10 @@
 @page "/"
 @using SixLabors.ImageSharp.Formats
-@using SixLabors.ImageSharp.Formats.Png
 @using System.IO.Compression
 @implements IAsyncDisposable
 @inject IJSRuntime JS
 @inject ILogger<Home> Logger
+@inject IFormatCatalog FormatCatalog
 
 <PageTitle>图像格式转换</PageTitle>
 
@@ -19,7 +19,7 @@
 
     <MudFileUpload T="IReadOnlyList<IBrowserFile>"
                    AppendMultipleFiles
-                   Accept="@FormatInfo.AcceptExtensions"
+                   Accept="@FormatCatalog.AcceptExtensions"
                    OnFilesChanged="OnFilesChanged"
                    MaximumFileCount="100"
                    Hidden="false"
@@ -37,7 +37,7 @@
                          Size="MudBlazor.Size.Large" Color="MudBlazor.Color.Primary" />
                 <MudText Typo="Typo.body1">点击或拖拽图像文件到此处（支持多选）</MudText>
                 <MudText Typo="Typo.caption" Color="MudBlazor.Color.Secondary">
-                    支持 @string.Join(", ", FormatInfo.EncodableFormats.Select(f => f.Name))
+                    支持 @string.Join(", ", FormatCatalog.EncodableFormats.Select(f => f.Name))
                 </MudText>
             </MudPaper>
         </ActivatorContent>
@@ -48,6 +48,7 @@
 @if (_items.Count > 0)
 {
     <ConversionPanel @bind-TargetFormat="_targetFormat"
+                     Formats="FormatCatalog.EncodableFormats"
                      @bind-TargetFormat:after="OnTargetFormatChanged"
                      EncoderChanged="OnEncoderChanged"
                      Class="mb-4" />
@@ -120,9 +121,7 @@
 
     private bool _dragging;
     private readonly List<ImageItem> _items = new();
-    private IImageFormat _targetFormat = FormatInfo.EncodableFormats
-        .FirstOrDefault(f => f is PngFormat)
-        ?? FormatInfo.EncodableFormats[0];
+    private ImageFormatDescriptor _targetFormat = default!;
     private IImageEncoder? _encoder;
     private IJSObjectReference? _jsModule;
     private bool _batchConverting;
@@ -140,6 +139,11 @@
 
     private void SetDragClass() => _dragging = true;
     private void ClearDragClass() => _dragging = false;
+
+    protected override void OnInitialized()
+    {
+        _targetFormat = FormatCatalog.DefaultTargetFormat;
+    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -166,7 +170,7 @@
     {
         try
         {
-            item.Job = new ImageDocument(item.FileName, _targetFormat);
+            item.Job = new ImageDocument(item.FileName, _targetFormat.Id, FormatCatalog);
             await using var stream = item.BrowserFile.OpenReadStream(MaxFileSize);
             await item.Job.LoadAsync(stream);
             item.ThumbnailUrl = item.Job.ToThumbnailDataUrl();
@@ -188,7 +192,7 @@
         foreach (var item in _items)
         {
             if (item.Job is not null)
-                item.Job.TargetFormat = _targetFormat;
+                item.Job.TargetFormatId = _targetFormat.Id;
             if (item.Status == ImageItemStatus.Done)
             {
                 item.Result?.Stream.Dispose();
@@ -213,7 +217,7 @@
 
         try
         {
-            item.Job.TargetFormat = _targetFormat;
+            item.Job.TargetFormatId = _targetFormat.Id;
             var sw = System.Diagnostics.Stopwatch.StartNew();
             var result = await item.Job.ConvertAsync(_encoder);
             sw.Stop();

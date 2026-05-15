@@ -5,7 +5,10 @@ using SixLabors.ImageSharp.Processing;
 
 namespace ImageConverter.Models;
 
-public sealed class ImageDocument(string fileName, IImageFormat targetFormat) : IDisposable
+public sealed class ImageDocument(
+    string fileName,
+    FormatId targetFormatId,
+    IFormatCatalog formatCatalog) : IDisposable
 {
     private Image? _image;
 
@@ -13,7 +16,7 @@ public sealed class ImageDocument(string fileName, IImageFormat targetFormat) : 
     public int Width => _image?.Width ?? 0;
     public int Height => _image?.Height ?? 0;
     public bool IsLoaded => _image is not null;
-    public IImageFormat TargetFormat { get; set; } = targetFormat;
+    public FormatId TargetFormatId { get; set; } = targetFormatId;
 
     public async Task LoadAsync(Stream stream)
     {
@@ -26,13 +29,15 @@ public sealed class ImageDocument(string fileName, IImageFormat targetFormat) : 
         if (_image is null)
             throw new InvalidOperationException("Image not loaded.");
 
-        encoder ??= Configuration.Default.ImageFormatsManager.GetEncoder(TargetFormat);
+        var formatEncoder = encoder is null
+            ? formatCatalog.GetEncoder(TargetFormatId)
+            : new ImageSharpEncoderAdapter(encoder);
 
         var outputStream = new MemoryStream();
-        await _image.SaveAsync(outputStream, encoder);
+        await formatEncoder.SaveAsync(_image, outputStream);
 
         outputStream.Position = 0;
-        var outputFileName = FormatInfo.GetOutputFileName(FileName, TargetFormat);
+        var outputFileName = formatCatalog.GetOutputFileName(FileName, TargetFormatId);
         return new ConversionResult(outputStream, outputFileName, outputStream.Length);
     }
 
@@ -57,3 +62,10 @@ public sealed class ImageDocument(string fileName, IImageFormat targetFormat) : 
 }
 
 public record ConversionResult(MemoryStream Stream, string OutputFileName, long Size);
+
+internal sealed class ImageSharpEncoderAdapter(SixLabors.ImageSharp.Formats.IImageEncoder inner)
+    : IImageFormatEncoder
+{
+    public Task SaveAsync(Image image, Stream stream) =>
+        image.SaveAsync(stream, inner);
+}

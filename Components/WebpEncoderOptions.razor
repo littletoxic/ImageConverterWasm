@@ -1,6 +1,6 @@
 @using SixLabors.ImageSharp.Formats
 @using SixLabors.ImageSharp.Formats.Webp
-@attribute [FormatEncoder(typeof(WebpFormat))]
+@attribute [FormatEncoder(KnownFormatIds.Webp)]
 @inherits EncoderOptionsBase
 
 <MudSwitch T="bool" @bind-Value="_lossless" @bind-Value:after="NotifyEncoderChanged"

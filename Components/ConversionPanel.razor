@@ -3,13 +3,13 @@
 <MudPaper Class="@($"pa-4 {Class}")" Elevation="2">
     <MudText Typo="Typo.h6" GutterBottom="true">转换设置</MudText>
 
-    <MudSelect T="IImageFormat"
+    <MudSelect T="ImageFormatDescriptor"
                Label="目标格式"
                @bind-Value="TargetFormat"
                @bind-Value:after="() => TargetFormatChanged.InvokeAsync(TargetFormat)"
                Variant="Variant.Outlined"
                Class="mb-4">
-        @foreach (var format in FormatInfo.EncodableFormats)
+        @foreach (var format in Formats)
         {
             <MudSelectItem Value="@format">@format.Name</MudSelectItem>
         }
@@ -20,7 +20,7 @@
                Label="剥离元数据（EXIF、XMP 等）" />
 
     @{
-        var componentType = EncoderOptionsBase.GetComponentType(TargetFormat);
+        var componentType = EncoderOptionsBase.GetComponentType(TargetFormat.Id);
     }
     @if (componentType is not null)
     {
@@ -29,8 +29,9 @@
 </MudPaper>
 
 @code {
-    [Parameter] public IImageFormat TargetFormat { get; set; } = default!;
-    [Parameter] public EventCallback<IImageFormat> TargetFormatChanged { get; set; }
+    [Parameter] public IReadOnlyList<ImageFormatDescriptor> Formats { get; set; } = [];
+    [Parameter] public ImageFormatDescriptor TargetFormat { get; set; } = default!;
+    [Parameter] public EventCallback<ImageFormatDescriptor> TargetFormatChanged { get; set; }
     [Parameter] public EventCallback<IImageEncoder> EncoderChanged { get; set; }
     [Parameter] public string? Class { get; set; }
 

@@ -1,24 +1,7 @@
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.Formats;
-
 namespace ImageConverter.Models;
 
 public static class FormatInfo
 {
-    public static IReadOnlyList<IImageFormat> EncodableFormats { get; } = [.. Configuration.Default.ImageFormats
-        .Where(f =>
-        {
-            try { Configuration.Default.ImageFormatsManager.GetEncoder(f); return true; }
-            catch { return false; }
-        })
-        .OrderBy(f => f.Name)];
-
-    public static string AcceptExtensions { get; } = string.Join(",",
-        EncodableFormats.SelectMany(f => f.FileExtensions).Select(e => $".{e}"));
-
-    public static string GetOutputFileName(string originalName, IImageFormat format) =>
-        Path.GetFileNameWithoutExtension(originalName) + "." + format.FileExtensions.First();
-
     public static string FormatFileSize(long bytes)
     {
         if (bytes < 1024) return $"{bytes} B";

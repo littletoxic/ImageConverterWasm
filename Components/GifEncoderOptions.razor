@@ -1,6 +1,6 @@
 @using SixLabors.ImageSharp.Formats
 @using SixLabors.ImageSharp.Formats.Gif
-@attribute [FormatEncoder(typeof(GifFormat))]
+@attribute [FormatEncoder(KnownFormatIds.Gif)]
 @inherits EncoderOptionsBase
 
 <MudSelect T="GifColorTableMode?" @bind-Value="_colorTableMode" @bind-Value:after="NotifyEncoderChanged"
