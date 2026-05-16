@@ -52,3 +52,9 @@ public sealed record RemoveItemNotFound(Guid ItemId);
 public union RemoveItemResult(
     RemoveItemSucceeded,
     RemoveItemNotFound);
+
+public sealed record BuildConvertedPackageSucceeded(string FileName, MemoryStream Stream);
+public sealed record BuildConvertedPackageEmpty;
+public union BuildConvertedPackageResult(
+    BuildConvertedPackageSucceeded,
+    BuildConvertedPackageEmpty);

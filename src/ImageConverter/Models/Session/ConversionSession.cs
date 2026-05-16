@@ -1,6 +1,7 @@
 using ImageConverter.Models.Encoding;
 using ImageConverter.Models.Formats;
 using ImageConverter.Models.Imaging;
+using ImageConverter.Models.Packaging;
 
 namespace ImageConverter.Models.Session;
 
@@ -16,6 +17,7 @@ public interface IConversionSession
     Task<ConvertAllResult> ConvertAllAsync(Action? progressChanged = null);
     CreatePreviewResult CreatePreview(Guid itemId, int maxSize);
     OpenConvertedImageResult OpenConvertedImage(Guid itemId);
+    Task<BuildConvertedPackageResult> BuildConvertedPackageAsync();
     RemoveItemResult RemoveItem(Guid itemId);
     void Clear();
 }
@@ -23,6 +25,7 @@ public interface IConversionSession
 public sealed class ConversionSession(
     IFormatCatalog formatCatalog,
     IImagePreviewBuilder previewBuilder,
+    IImagePackageBuilder packageBuilder,
     ILogger<ConversionSession> logger) : IConversionSession
 {
     private const long MaxFileSize = 50 * 1024 * 1024;
@@ -209,6 +212,21 @@ public sealed class ConversionSession(
 
         item.Result.Stream.Position = 0;
         return new OpenConvertedImageSucceeded(itemId, item.Result.OutputFileName, item.Result.Stream);
+    }
+
+    public async Task<BuildConvertedPackageResult> BuildConvertedPackageAsync()
+    {
+        var entries = _items
+            .Where(i => i.Status is ImageItemStatus.Done)
+            .Select(i => i.Result)
+            .OfType<ConversionResult>()
+            .Select(r => new ImagePackageEntrySource(r.OutputFileName, r.Stream))
+            .ToList();
+
+        var built = await packageBuilder.BuildAsync(entries, "converted-images.zip");
+        if (built is BuildImagePackageSucceeded ok)
+            return new BuildConvertedPackageSucceeded(ok.Package.FileName, ok.Package.Stream);
+        return new BuildConvertedPackageEmpty();
     }
 
     public RemoveItemResult RemoveItem(Guid itemId)

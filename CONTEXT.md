@@ -29,6 +29,7 @@ The Conversion Session owns workflow state and workflow decisions:
 - Reporting batch conversion progress.
 - Creating preview command results through the Preview Builder.
 - Opening converted result streams for browser adapters.
+- Building ZIP packages of converted results through the Package Builder.
 - Removing items, clearing the session, and disposing image/result resources.
 
 Blazor owns browser integration:
