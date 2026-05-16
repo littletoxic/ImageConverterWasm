@@ -1,5 +1,6 @@
 using ImageConverter.Models.Formats;
 using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Formats;
 
 namespace ImageConverter.Models.Imaging;
 
@@ -23,13 +24,13 @@ public sealed class ImageDocument(
         _image = await Image.LoadAsync(stream);
     }
 
-    public async Task<ConversionResult> ConvertAsync(IImageFormatEncoder encoder)
+    public async Task<ConversionResult> ConvertAsync(IImageEncoder encoder)
     {
         if (_image is null)
             throw new InvalidOperationException("Image not loaded.");
 
         var outputStream = new MemoryStream();
-        await encoder.SaveAsync(_image, outputStream);
+        await _image.SaveAsync(outputStream, encoder);
 
         outputStream.Position = 0;
         var outputFileName = formatCatalog.GetOutputFileName(FileName, TargetFormatId);

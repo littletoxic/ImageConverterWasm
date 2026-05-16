@@ -1,7 +1,6 @@
 using ImageConverter.Models.Encoding;
 using ImageConverter.Models.Formats;
 using ImageConverter.Models.Imaging;
-using Microsoft.Extensions.Logging;
 
 namespace ImageConverter.Models.Session;
 
@@ -11,7 +10,8 @@ public interface IConversionSession
     AddFilesResult AddFiles(IReadOnlyList<BrowserImageFile> files);
     Task<LoadImageResult> LoadImageAsync(Guid itemId);
     void SetTargetFormat(FormatId formatId);
-    void UpdateEncoderSettings(EncoderSettings? settings);
+    void UpdateEncoderSettings(EncoderSettings settings);
+    void SetSkipMetadata(bool value);
     Task<ConvertImageResult> ConvertImageAsync(Guid itemId);
     Task<ConvertAllResult> ConvertAllAsync(Action? progressChanged = null);
     CreatePreviewResult CreatePreview(Guid itemId, int maxSize);
@@ -22,7 +22,6 @@ public interface IConversionSession
 
 public sealed class ConversionSession(
     IFormatCatalog formatCatalog,
-    IImageFormatEncoderFactory encoderFactory,
     IImagePreviewBuilder previewBuilder,
     ILogger<ConversionSession> logger) : IConversionSession
 {
@@ -30,7 +29,8 @@ public sealed class ConversionSession(
 
     private readonly List<SessionImageItem> _items = [];
     private FormatId _targetFormatId = formatCatalog.DefaultTargetFormat.Id;
-    private EncoderSettings? _encoderSettings;
+    private EncoderSettings _encoderSettings = EncoderSettings.Default(formatCatalog.DefaultTargetFormat.Id);
+    private bool _skipMetadata;
     private BatchConversionSnapshot _batch = new(false, 0, 0);
 
     public ConversionSessionSnapshot Snapshot => new(
@@ -81,7 +81,7 @@ public sealed class ConversionSession(
     public void SetTargetFormat(FormatId formatId)
     {
         _targetFormatId = formatId;
-        _encoderSettings = null;
+        _encoderSettings = EncoderSettings.Default(formatId) with { SkipMetadata = _skipMetadata };
 
         foreach (var item in _items)
         {
@@ -97,8 +97,14 @@ public sealed class ConversionSession(
         }
     }
 
-    public void UpdateEncoderSettings(EncoderSettings? settings) =>
-        _encoderSettings = settings;
+    public void UpdateEncoderSettings(EncoderSettings settings) =>
+        _encoderSettings = settings with { SkipMetadata = _skipMetadata };
+
+    public void SetSkipMetadata(bool value)
+    {
+        _skipMetadata = value;
+        _encoderSettings = _encoderSettings with { SkipMetadata = value };
+    }
 
     public async Task<ConvertImageResult> ConvertImageAsync(Guid itemId)
     {
@@ -117,7 +123,7 @@ public sealed class ConversionSession(
         {
             item.Job.TargetFormatId = _targetFormatId;
             var sw = System.Diagnostics.Stopwatch.StartNew();
-            var encoder = encoderFactory.Create(_targetFormatId, _encoderSettings);
+            var encoder = _encoderSettings.BuildEncoder();
             var result = await item.Job.ConvertAsync(encoder);
             sw.Stop();
 

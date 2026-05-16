@@ -1,5 +1,4 @@
 @using SixLabors.ImageSharp.Formats.Bmp
-@attribute [FormatEncoder(KnownFormatIds.Bmp)]
 @inherits EncoderOptionsBase
 
 <MudSelect T="BmpBitsPerPixel?" @bind-Value="_bitsPerPixel" @bind-Value:after="NotifySettingsChanged"
@@ -20,5 +19,5 @@
     private bool _supportTransparency;
 
     protected override EncoderSettings BuildSettings() =>
-        new BmpEncoderSettings(_bitsPerPixel, _supportTransparency, SkipMetadata);
+        new BmpEncoderSettings(_bitsPerPixel, _supportTransparency);
 }

@@ -1,6 +1,5 @@
 @using SixLabors.ImageSharp.Formats
 @using SixLabors.ImageSharp.Formats.Png
-@attribute [FormatEncoder(KnownFormatIds.Png)]
 @inherits EncoderOptionsBase
 
 <MudText Typo="Typo.body2" Class="mb-2">压缩级别：@_compressionLevel</MudText>
@@ -75,6 +74,5 @@
             _interlace,
             _bitDepth,
             _filterMethod,
-            _transparentColorMode,
-            SkipMetadata);
+            _transparentColorMode);
 }

@@ -1,7 +1,6 @@
 @using ImageConverter.Models.Encoding
 @using ImageConverter.Models.Formats
 @using SixLabors.ImageSharp.Formats
-@attribute [FormatEncoder(KnownFormatIds.Gif)]
 @inherits EncoderOptionsBase
 
 <MudSelect T="FrameColorTableMode?" @bind-Value="_colorTableMode" @bind-Value:after="NotifySettingsChanged"
@@ -15,5 +14,5 @@
     private FrameColorTableMode? _colorTableMode;
 
     protected override EncoderSettings BuildSettings() =>
-        new GifEncoderSettings(_colorTableMode, SkipMetadata);
+        new GifEncoderSettings(_colorTableMode);
 }

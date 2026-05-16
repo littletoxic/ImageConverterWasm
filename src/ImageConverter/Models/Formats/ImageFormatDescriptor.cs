@@ -1,3 +1,5 @@
+using SixLabors.ImageSharp.Formats;
+
 namespace ImageConverter.Models.Formats;
 
 public sealed record ImageFormatDescriptor(
@@ -14,10 +16,5 @@ public interface IFormatCatalog
     ImageFormatDescriptor DefaultTargetFormat { get; }
     string AcceptExtensions { get; }
     string GetOutputFileName(string originalName, FormatId formatId);
-    IImageFormatEncoder GetEncoder(FormatId formatId);
-}
-
-public interface IImageFormatEncoder
-{
-    Task SaveAsync(SixLabors.ImageSharp.Image image, Stream stream);
+    IImageEncoder GetEncoder(FormatId formatId);
 }

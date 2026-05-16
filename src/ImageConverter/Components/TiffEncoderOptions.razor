@@ -2,7 +2,6 @@
 @using ImageConverter.Models.Formats
 @using SixLabors.ImageSharp.Formats.Tiff
 @using SixLabors.ImageSharp.Formats.Tiff.Constants
-@attribute [FormatEncoder(KnownFormatIds.Tiff)]
 @inherits EncoderOptionsBase
 
 <MudSelect T="TiffCompression?" @bind-Value="_compression" @bind-Value:after="NotifySettingsChanged"
@@ -62,6 +61,5 @@
             _compression,
             _bitsPerPixel,
             _photometric,
-            _predictor,
-            SkipMetadata);
+            _predictor);
 }

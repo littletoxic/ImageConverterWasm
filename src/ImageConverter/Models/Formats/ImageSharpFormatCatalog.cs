@@ -1,4 +1,3 @@
-using ImageConverter.Models.Encoding;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Png;
@@ -38,11 +37,10 @@ public sealed class ImageSharpFormatCatalog : IFormatCatalog
     public string GetOutputFileName(string originalName, FormatId formatId) =>
         Path.GetFileNameWithoutExtension(originalName) + "." + GetDescriptor(formatId).DefaultExtension;
 
-    public IImageFormatEncoder GetEncoder(FormatId formatId)
+    public IImageEncoder GetEncoder(FormatId formatId)
     {
         var format = GetFormat(formatId);
-        var encoder = Configuration.Default.ImageFormatsManager.GetEncoder(format);
-        return new ImageSharpFormatEncoder(encoder);
+        return Configuration.Default.ImageFormatsManager.GetEncoder(format);
     }
 
     private static bool CanEncode(IImageFormat format)

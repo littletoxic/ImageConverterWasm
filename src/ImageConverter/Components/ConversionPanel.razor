@@ -13,16 +13,31 @@
         }
     </MudSelect>
 
-    <MudSwitch T="bool" @bind-Value="_stripMetadata" @bind-Value:after="SyncStripMetadata"
+    <MudSwitch T="bool" Value="SkipMetadata"
+               ValueChanged="OnSkipMetadataChanged"
                Color="MudBlazor.Color.Primary" Class="mb-4"
                Label="剥离元数据（EXIF、XMP 等）" />
 
-    @{
-        var componentType = EncoderOptionsBase.GetComponentType(TargetFormat.Id);
-    }
-    @if (componentType is not null)
+    @switch (TargetFormat.Id.Value)
     {
-        <DynamicComponent Type="componentType" Parameters="_encoderParams" />
+        case KnownFormatIds.Bmp:
+            <BmpEncoderOptions EncoderSettingsChanged="EncoderSettingsChanged" />
+            break;
+        case KnownFormatIds.Gif:
+            <GifEncoderOptions EncoderSettingsChanged="EncoderSettingsChanged" />
+            break;
+        case KnownFormatIds.Jpeg:
+            <JpegEncoderOptions EncoderSettingsChanged="EncoderSettingsChanged" />
+            break;
+        case KnownFormatIds.Png:
+            <PngEncoderOptions EncoderSettingsChanged="EncoderSettingsChanged" />
+            break;
+        case KnownFormatIds.Tiff:
+            <TiffEncoderOptions EncoderSettingsChanged="EncoderSettingsChanged" />
+            break;
+        case KnownFormatIds.Webp:
+            <WebpEncoderOptions EncoderSettingsChanged="EncoderSettingsChanged" />
+            break;
     }
 </MudPaper>
 
@@ -30,23 +45,11 @@
     [Parameter] public IReadOnlyList<ImageFormatDescriptor> Formats { get; set; } = [];
     [Parameter] public ImageFormatDescriptor TargetFormat { get; set; } = default!;
     [Parameter] public EventCallback<ImageFormatDescriptor> TargetFormatChanged { get; set; }
+    [Parameter] public bool SkipMetadata { get; set; }
+    [Parameter] public EventCallback<bool> SkipMetadataChanged { get; set; }
     [Parameter] public EventCallback<EncoderSettings> EncoderSettingsChanged { get; set; }
     [Parameter] public string? Class { get; set; }
 
-    private bool _stripMetadata;
-    private Dictionary<string, object>? _encoderParams;
-
-    protected override void OnInitialized()
-    {
-        _encoderParams = new Dictionary<string, object>
-        {
-            [nameof(EncoderOptionsBase.EncoderSettingsChanged)] =
-                EventCallback.Factory.Create<EncoderSettings>(this,
-                    settings => EncoderSettingsChanged.InvokeAsync(settings)),
-            [nameof(EncoderOptionsBase.SkipMetadata)] = _stripMetadata,
-        };
-    }
-
-    private void SyncStripMetadata() =>
-        _encoderParams![nameof(EncoderOptionsBase.SkipMetadata)] = _stripMetadata;
+    private Task OnSkipMetadataChanged(bool value) =>
+        SkipMetadataChanged.InvokeAsync(value);
 }
