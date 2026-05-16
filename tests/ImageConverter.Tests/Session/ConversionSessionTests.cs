@@ -1,6 +1,5 @@
-using ImageConverter.Models.Encoding;
 using ImageConverter.Models.Formats;
-using ImageConverter.Models.Imaging;
+using ImageConverter.Models.Packaging;
 using ImageConverter.Models.Session;
 using Microsoft.Extensions.Logging.Abstractions;
 using SixLabors.ImageSharp;
@@ -11,10 +10,9 @@ namespace ImageConverter.Tests.Session;
 public sealed class ConversionSessionTests
 {
     [Fact]
-    public async Task LoadAndConvertSingleImage_UpdatesSnapshotStates()
+    public async Task LoadAndConvertSingleImage_TransitionsToPendingThenDone()
     {
-        var conversionGate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        var session = CreateSession(new StubEncoderFactory(new DelayedPngEncoder(conversionGate.Task)));
+        var session = CreateSession();
         var sourceBytes = CreatePngBytes(width: 2, height: 3);
 
         var itemId = SingleAddedId(session.AddFiles(
@@ -34,10 +32,7 @@ public sealed class ConversionSessionTests
         Assert.NotNull(loadedItem.ThumbnailUrl);
         Assert.True(loadedItem.CanConvert);
 
-        var convertTask = session.ConvertImageAsync(itemId);
-        Assert.Equal(ImageItemStatus.Converting, Assert.Single(session.Snapshot.Items).Status);
-        conversionGate.SetResult();
-        var convertResult = await convertTask;
+        var convertResult = await session.ConvertImageAsync(itemId);
 
         Assert.IsType<ConvertImageSucceeded>(convertResult.Value);
         var convertedItem = Assert.Single(session.Snapshot.Items);
@@ -66,10 +61,9 @@ public sealed class ConversionSessionTests
     }
 
     [Fact]
-    public async Task CreatePreview_ReturnsPreviewFromPreviewBuilder()
+    public async Task CreatePreview_ReturnsDataUrlForLoadedImage()
     {
-        var previewBuilder = new StubPreviewBuilder("data:image/jpeg;base64,preview");
-        var session = CreateSession(previewBuilder: previewBuilder);
+        var session = CreateSession();
         var sourceBytes = CreatePngBytes(width: 4, height: 5);
         var itemId = SingleAddedId(session.AddFiles(
             [new BrowserImageFile("source.png", sourceBytes.Length, _ => new MemoryStream(sourceBytes))]));
@@ -79,24 +73,7 @@ public sealed class ConversionSessionTests
 
         var preview = Assert.IsType<CreatePreviewSucceeded>(result.Value);
         Assert.Equal(itemId, preview.ItemId);
-        Assert.Equal("data:image/jpeg;base64,preview", preview.DataUrl);
-        Assert.Equal([320, 1024], previewBuilder.RequestedSizes);
-    }
-
-    [Fact]
-    public async Task CreatePreview_ReturnsFailedWhenPreviewBuilderFails()
-    {
-        var session = CreateSession(previewBuilder: new ThrowingPreviewBuilder());
-        var sourceBytes = CreatePngBytes(width: 4, height: 5);
-        var itemId = SingleAddedId(session.AddFiles(
-            [new BrowserImageFile("source.png", sourceBytes.Length, _ => new MemoryStream(sourceBytes))]));
-
-        await session.LoadImageAsync(itemId);
-        var result = session.CreatePreview(itemId, 1024);
-
-        var failed = Assert.IsType<CreatePreviewFailed>(result.Value);
-        Assert.Equal(itemId, failed.ItemId);
-        Assert.Equal("preview exploded", failed.Message);
+        Assert.StartsWith("data:image/jpeg;base64,", preview.DataUrl);
     }
 
     [Fact]
@@ -127,8 +104,8 @@ public sealed class ConversionSessionTests
     public async Task ConvertAll_ProcessesConvertibleItemsAndReportsProgress()
     {
         var session = CreateSession();
-        var firstId = AddLoadedImage(session, "first.png", CreatePngBytes(width: 1, height: 1));
-        var secondId = AddLoadedImage(session, "second.png", CreatePngBytes(width: 2, height: 2));
+        var firstId = AddImage(session, "first.png", CreatePngBytes(width: 1, height: 1));
+        var secondId = AddImage(session, "second.png", CreatePngBytes(width: 2, height: 2));
         await Task.WhenAll(session.LoadImageAsync(firstId), session.LoadImageAsync(secondId));
 
         var progress = new List<BatchConversionSnapshot>();
@@ -150,7 +127,7 @@ public sealed class ConversionSessionTests
     public async Task SetTargetFormat_ResetsCompletedResultsAndDisposesConvertedStream()
     {
         var session = CreateSession();
-        var itemId = AddLoadedImage(session, "source.png", CreatePngBytes(width: 1, height: 1));
+        var itemId = AddImage(session, "source.png", CreatePngBytes(width: 1, height: 1));
         await session.LoadImageAsync(itemId);
         await session.ConvertImageAsync(itemId);
         var stream = Assert.IsType<OpenConvertedImageSucceeded>(session.OpenConvertedImage(itemId).Value).Stream;
@@ -167,7 +144,7 @@ public sealed class ConversionSessionTests
     public async Task RemoveItem_DisposesConvertedResult()
     {
         var session = CreateSession();
-        var itemId = AddLoadedImage(session, "source.png", CreatePngBytes(width: 1, height: 1));
+        var itemId = AddImage(session, "source.png", CreatePngBytes(width: 1, height: 1));
         await session.LoadImageAsync(itemId);
         await session.ConvertImageAsync(itemId);
         var stream = Assert.IsType<OpenConvertedImageSucceeded>(session.OpenConvertedImage(itemId).Value).Stream;
@@ -183,7 +160,7 @@ public sealed class ConversionSessionTests
     public async Task Clear_DisposesConvertedResultsAndRemovesItems()
     {
         var session = CreateSession();
-        var itemId = AddLoadedImage(session, "source.png", CreatePngBytes(width: 1, height: 1));
+        var itemId = AddImage(session, "source.png", CreatePngBytes(width: 1, height: 1));
         await session.LoadImageAsync(itemId);
         await session.ConvertImageAsync(itemId);
         var stream = Assert.IsType<OpenConvertedImageSucceeded>(session.OpenConvertedImage(itemId).Value).Stream;
@@ -210,24 +187,16 @@ public sealed class ConversionSessionTests
         Assert.StartsWith("加载失败：", item.ErrorMessage);
     }
 
-    private static ConversionSession CreateSession(
-        IImageFormatEncoderFactory? encoderFactory = null,
-        IImagePreviewBuilder? previewBuilder = null)
-    {
-        var formatCatalog = new ImageSharpFormatCatalog();
-        return new(
-            formatCatalog,
-            encoderFactory ?? new ImageSharpEncoderFactory(formatCatalog),
-            previewBuilder ?? new ImageSharpImagePreviewBuilder(),
+    private static ConversionSession CreateSession() =>
+        new(new ImageSharpFormatCatalog(),
+            new ZipImagePackageBuilder(),
             NullLogger<ConversionSession>.Instance);
-    }
 
-    private static Guid AddLoadedImage(ConversionSession session, string fileName, byte[] bytes) =>
+    private static Guid AddImage(ConversionSession session, string fileName, byte[] bytes) =>
         SingleAddedId(session.AddFiles(
             [new BrowserImageFile(fileName, bytes.Length, _ => new MemoryStream(bytes))]));
 
-    private static Guid SingleAddedId(AddFilesResult result) =>
-        Assert.Single(Assert.IsType<AddFilesSucceeded>(result.Value).ItemIds);
+    private static Guid SingleAddedId(IReadOnlyList<Guid> ids) => Assert.Single(ids);
 
     private static byte[] CreatePngBytes(int width, int height)
     {
@@ -235,36 +204,5 @@ public sealed class ConversionSessionTests
         using var stream = new MemoryStream();
         image.SaveAsPng(stream);
         return stream.ToArray();
-    }
-
-    private sealed class DelayedPngEncoder(Task gate) : IImageFormatEncoder
-    {
-        public async Task SaveAsync(Image image, Stream stream)
-        {
-            await gate;
-            await image.SaveAsPngAsync(stream);
-        }
-    }
-
-    private sealed class StubEncoderFactory(IImageFormatEncoder encoder) : IImageFormatEncoderFactory
-    {
-        public IImageFormatEncoder Create(FormatId formatId, EncoderSettings? settings) => encoder;
-    }
-
-    private sealed class StubPreviewBuilder(string dataUrl) : IImagePreviewBuilder
-    {
-        public List<int> RequestedSizes { get; } = [];
-
-        public string CreatePreview(ImageDocument document, ImagePreviewRequest request)
-        {
-            RequestedSizes.Add(request.MaxSize);
-            return dataUrl;
-        }
-    }
-
-    private sealed class ThrowingPreviewBuilder : IImagePreviewBuilder
-    {
-        public string CreatePreview(ImageDocument document, ImagePreviewRequest request) =>
-            throw new InvalidOperationException("preview exploded");
     }
 }

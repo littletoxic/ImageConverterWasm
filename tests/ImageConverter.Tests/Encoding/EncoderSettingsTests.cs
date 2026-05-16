@@ -1,5 +1,4 @@
 using ImageConverter.Models.Encoding;
-using ImageConverter.Models.Formats;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.Formats.Gif;
@@ -11,29 +10,24 @@ using SixLabors.ImageSharp.Formats.Webp;
 
 namespace ImageConverter.Tests.Encoding;
 
-public sealed class ImageSharpEncoderFactoryTests
+public sealed class EncoderSettingsTests
 {
     [Fact]
-    public void EncoderSettingsDefaults_MatchCurrentUiDefaults()
+    public void Defaults_MatchCurrentUiDefaults()
     {
-        Assert.Equal(new FormatId(KnownFormatIds.Bmp), new BmpEncoderSettings().FormatId);
         Assert.False(new BmpEncoderSettings().SupportTransparency);
 
-        Assert.Equal(new FormatId(KnownFormatIds.Gif), new GifEncoderSettings().FormatId);
         Assert.Null(new GifEncoderSettings().ColorTableMode);
 
-        Assert.Equal(new FormatId(KnownFormatIds.Jpeg), new JpegEncoderSettings().FormatId);
         Assert.Equal(90, new JpegEncoderSettings().Quality);
 
-        Assert.Equal(new FormatId(KnownFormatIds.Png), new PngEncoderSettings().FormatId);
-        Assert.Equal(6, new PngEncoderSettings().CompressionLevel);
-        Assert.Equal(TransparentColorMode.Preserve, new PngEncoderSettings().TransparentColorMode);
+        var png = new PngEncoderSettings();
+        Assert.Equal(6, png.CompressionLevel);
+        Assert.Equal(TransparentColorMode.Preserve, png.TransparentColorMode);
 
-        Assert.Equal(new FormatId(KnownFormatIds.Tiff), new TiffEncoderSettings().FormatId);
         Assert.Null(new TiffEncoderSettings().Compression);
 
         var webp = new WebpEncoderSettings();
-        Assert.Equal(new FormatId(KnownFormatIds.Webp), webp.FormatId);
         Assert.Equal(75, webp.Quality);
         Assert.False(webp.Lossless);
         Assert.Equal(4, webp.Method);
@@ -41,14 +35,12 @@ public sealed class ImageSharpEncoderFactoryTests
     }
 
     [Fact]
-    public void Create_MapsJpegSettingsToImageSharpEncoder()
+    public void JpegSettings_BuildEncoderMapsFields()
     {
-        var factory = CreateFactory();
-
-        var encoder = CreateInner<JpegEncoder>(factory, new JpegEncoderSettings(
+        var encoder = Build<JpegEncoder>(new JpegEncoderSettings(
             Quality: 82,
-            ColorType: JpegColorType.Rgb,
-            SkipMetadata: true));
+            ColorType: JpegColorType.Rgb)
+        { SkipMetadata = true });
 
         Assert.Equal(82, encoder.Quality);
         Assert.Equal(JpegColorType.Rgb, encoder.ColorType);
@@ -56,18 +48,16 @@ public sealed class ImageSharpEncoderFactoryTests
     }
 
     [Fact]
-    public void Create_MapsPngSettingsToImageSharpEncoder()
+    public void PngSettings_BuildEncoderMapsFields()
     {
-        var factory = CreateFactory();
-
-        var encoder = CreateInner<PngEncoder>(factory, new PngEncoderSettings(
+        var encoder = Build<PngEncoder>(new PngEncoderSettings(
             CompressionLevel: 9,
             ColorType: PngColorType.RgbWithAlpha,
             Interlace: true,
             BitDepth: PngBitDepth.Bit8,
             FilterMethod: PngFilterMethod.Adaptive,
-            TransparentColorMode: TransparentColorMode.Clear,
-            SkipMetadata: true));
+            TransparentColorMode: TransparentColorMode.Clear)
+        { SkipMetadata = true });
 
         Assert.Equal(PngCompressionLevel.Level9, encoder.CompressionLevel);
         Assert.Equal(PngColorType.RgbWithAlpha, encoder.ColorType);
@@ -79,45 +69,42 @@ public sealed class ImageSharpEncoderFactoryTests
     }
 
     [Fact]
-    public void Create_MapsRemainingFormatSettingsToImageSharpEncoders()
+    public void RemainingSettings_BuildEncoderMapsFields()
     {
-        var factory = CreateFactory();
-
-        var bmp = CreateInner<BmpEncoder>(factory, new BmpEncoderSettings(
+        var bmp = Build<BmpEncoder>(new BmpEncoderSettings(
             BmpBitsPerPixel.Bit32,
-            SupportTransparency: true,
-            SkipMetadata: true));
+            SupportTransparency: true)
+        { SkipMetadata = true });
         Assert.Equal(BmpBitsPerPixel.Bit32, bmp.BitsPerPixel);
         Assert.True(bmp.SupportTransparency);
         Assert.True(bmp.SkipMetadata);
 
-        var gif = CreateInner<GifEncoder>(factory, new GifEncoderSettings(
-            FrameColorTableMode.Local,
-            SkipMetadata: true));
+        var gif = Build<GifEncoder>(new GifEncoderSettings(FrameColorTableMode.Local)
+        { SkipMetadata = true });
         Assert.Equal(FrameColorTableMode.Local, gif.ColorTableMode);
         Assert.True(gif.SkipMetadata);
 
-        var tiff = CreateInner<TiffEncoder>(factory, new TiffEncoderSettings(
+        var tiff = Build<TiffEncoder>(new TiffEncoderSettings(
             TiffCompression.Lzw,
             TiffBitsPerPixel.Bit24,
             TiffPhotometricInterpretation.Rgb,
-            TiffPredictor.Horizontal,
-            SkipMetadata: true));
+            TiffPredictor.Horizontal)
+        { SkipMetadata = true });
         Assert.Equal(TiffCompression.Lzw, tiff.Compression);
         Assert.Equal(TiffBitsPerPixel.Bit24, tiff.BitsPerPixel);
         Assert.Equal(TiffPhotometricInterpretation.Rgb, tiff.PhotometricInterpretation);
         Assert.Equal(TiffPredictor.Horizontal, tiff.HorizontalPredictor);
         Assert.True(tiff.SkipMetadata);
 
-        var webp = CreateInner<WebpEncoder>(factory, new WebpEncoderSettings(
+        var webp = Build<WebpEncoder>(new WebpEncoderSettings(
             Quality: 64,
             Lossless: true,
             Method: 6,
             FilterStrength: 25,
             NearLossless: true,
             NearLosslessQuality: 80,
-            TransparentColorMode: TransparentColorMode.Clear,
-            SkipMetadata: true));
+            TransparentColorMode: TransparentColorMode.Clear)
+        { SkipMetadata = true });
         Assert.Equal(WebpFileFormatType.Lossless, webp.FileFormat);
         Assert.Equal(64, webp.Quality);
         Assert.Equal(WebpEncodingMethod.BestQuality, webp.Method);
@@ -128,15 +115,6 @@ public sealed class ImageSharpEncoderFactoryTests
         Assert.True(webp.SkipMetadata);
     }
 
-    private static ImageSharpEncoderFactory CreateFactory() =>
-        new(new ImageSharpFormatCatalog());
-
-    private static TEncoder CreateInner<TEncoder>(
-        ImageSharpEncoderFactory factory,
-        EncoderSettings settings)
-    {
-        var adapter = Assert.IsType<ImageSharpFormatEncoder>(
-            factory.Create(settings.FormatId, settings));
-        return Assert.IsType<TEncoder>(adapter.Inner);
-    }
+    private static T Build<T>(EncoderSettings settings) where T : class, IImageEncoder =>
+        Assert.IsType<T>(settings.BuildEncoder());
 }
