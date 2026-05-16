@@ -1,8 +1,5 @@
 namespace ImageConverter.Models.Session;
 
-public sealed record AddFilesSucceeded(IReadOnlyList<Guid> ItemIds);
-public union AddFilesResult(AddFilesSucceeded);
-
 public sealed record LoadImageSucceeded(Guid ItemId);
 public sealed record LoadImageItemNotFound(Guid ItemId);
 public sealed record LoadImageFailed(Guid ItemId, string Message);

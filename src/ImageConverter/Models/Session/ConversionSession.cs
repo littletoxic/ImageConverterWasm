@@ -8,7 +8,7 @@ namespace ImageConverter.Models.Session;
 public interface IConversionSession
 {
     ConversionSessionSnapshot Snapshot { get; }
-    AddFilesResult AddFiles(IReadOnlyList<BrowserImageFile> files);
+    IReadOnlyList<Guid> AddFiles(IReadOnlyList<BrowserImageFile> files);
     Task<LoadImageResult> LoadImageAsync(Guid itemId);
     void SetTargetFormat(FormatId formatId);
     void UpdateEncoderSettings(EncoderSettings settings);
@@ -42,7 +42,7 @@ public sealed class ConversionSession(
         _items.Any(CanConvert),
         _items.Any(i => i.Status is ImageItemStatus.Done));
 
-    public AddFilesResult AddFiles(IReadOnlyList<BrowserImageFile> files)
+    public IReadOnlyList<Guid> AddFiles(IReadOnlyList<BrowserImageFile> files)
     {
         var ids = new List<Guid>(files.Count);
         foreach (var file in files)
@@ -52,7 +52,7 @@ public sealed class ConversionSession(
             ids.Add(item.Id);
         }
 
-        return new AddFilesSucceeded(ids);
+        return ids;
     }
 
     public async Task<LoadImageResult> LoadImageAsync(Guid itemId)

@@ -165,10 +165,9 @@
                 maxFileSize => file.OpenReadStream(maxFileSize)))
             .ToList();
 
-        var result = Session.AddFiles(newFiles);
-        if (result is AddFilesSucceeded succeeded)
-            foreach (var itemId in succeeded.ItemIds)
-                _ = LoadItemAsync(itemId);
+        var itemIds = Session.AddFiles(newFiles);
+        foreach (var itemId in itemIds)
+            _ = LoadItemAsync(itemId);
     }
 
     private async Task LoadItemAsync(Guid itemId)
