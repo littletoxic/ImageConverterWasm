@@ -24,7 +24,6 @@ public interface IConversionSession
 
 public sealed class ConversionSession(
     IFormatCatalog formatCatalog,
-    IImagePreviewBuilder previewBuilder,
     IImagePackageBuilder packageBuilder,
     ILogger<ConversionSession> logger) : IConversionSession
 {
@@ -64,10 +63,10 @@ public sealed class ConversionSession(
 
         try
         {
-            item.Job = new ImageDocument(item.File.FileName, _targetFormatId, formatCatalog);
+            item.Job = new ImageDocument(item.File.FileName);
             await using var stream = item.File.OpenReadStream(MaxFileSize);
             await item.Job.LoadAsync(stream);
-            item.ThumbnailUrl = previewBuilder.CreatePreview(item.Job, ImagePreviewRequest.Thumbnail);
+            item.ThumbnailUrl = item.Job.CreatePreview(ImageDocument.ThumbnailMaxSize);
             item.Status = ImageItemStatus.Pending;
             item.ErrorMessage = null;
             return new LoadImageSucceeded(itemId);
@@ -88,13 +87,11 @@ public sealed class ConversionSession(
 
         foreach (var item in _items)
         {
-            if (item.Job is not null)
-                item.Job.TargetFormatId = formatId;
-
             if (item.Status == ImageItemStatus.Done)
             {
-                item.Result?.Stream.Dispose();
-                item.Result = null;
+                item.Encoded?.Stream.Dispose();
+                item.Encoded = null;
+                item.OutputFileName = null;
                 item.Status = ImageItemStatus.Pending;
             }
         }
@@ -119,21 +116,22 @@ public sealed class ConversionSession(
 
         item.Status = ImageItemStatus.Converting;
         item.ErrorMessage = null;
-        item.Result?.Stream.Dispose();
-        item.Result = null;
+        item.Encoded?.Stream.Dispose();
+        item.Encoded = null;
+        item.OutputFileName = null;
 
         try
         {
-            item.Job.TargetFormatId = _targetFormatId;
             var sw = System.Diagnostics.Stopwatch.StartNew();
             var encoder = _encoderSettings.BuildEncoder();
-            var result = await item.Job.ConvertAsync(encoder);
+            var encoded = await item.Job.ConvertAsync(encoder);
             sw.Stop();
 
+            item.Encoded = encoded;
+            item.OutputFileName = formatCatalog.GetOutputFileName(item.File.FileName, _targetFormatId);
             logger.LogInformation("Converted {FileName} to {Format} in {Elapsed}ms ({Size})",
                 item.File.FileName, _targetFormatId, sw.ElapsedMilliseconds,
-                FormatInfo.FormatFileSize(result.Size));
-            item.Result = result;
+                FormatInfo.FormatFileSize(encoded.Size));
             item.Status = ImageItemStatus.Done;
             return new ConvertImageSucceeded(itemId);
         }
@@ -191,9 +189,7 @@ public sealed class ConversionSession(
 
         try
         {
-            return new CreatePreviewSucceeded(
-                itemId,
-                previewBuilder.CreatePreview(item.Job, new ImagePreviewRequest(maxSize)));
+            return new CreatePreviewSucceeded(itemId, item.Job.CreatePreview(maxSize));
         }
         catch (Exception ex)
         {
@@ -207,20 +203,18 @@ public sealed class ConversionSession(
         var item = Find(itemId);
         if (item is null)
             return new OpenConvertedImageItemNotFound(itemId);
-        if (item.Result is null)
+        if (item.Encoded is null || item.OutputFileName is null)
             return new OpenConvertedImageNotReady(itemId);
 
-        item.Result.Stream.Position = 0;
-        return new OpenConvertedImageSucceeded(itemId, item.Result.OutputFileName, item.Result.Stream);
+        item.Encoded.Stream.Position = 0;
+        return new OpenConvertedImageSucceeded(itemId, item.OutputFileName, item.Encoded.Stream);
     }
 
     public async Task<BuildConvertedPackageResult> BuildConvertedPackageAsync()
     {
         var entries = _items
-            .Where(i => i.Status is ImageItemStatus.Done)
-            .Select(i => i.Result)
-            .OfType<ConversionResult>()
-            .Select(r => new ImagePackageEntrySource(r.OutputFileName, r.Stream))
+            .Where(i => i.Status is ImageItemStatus.Done && i.Encoded is not null && i.OutputFileName is not null)
+            .Select(i => new ImagePackageEntrySource(i.OutputFileName!, i.Encoded!.Stream))
             .ToList();
 
         var built = await packageBuilder.BuildAsync(entries, "converted-images.zip");
@@ -260,7 +254,7 @@ public sealed class ConversionSession(
             item.ThumbnailUrl,
             item.Status,
             item.ErrorMessage,
-            item.Result?.Size,
+            item.Encoded?.Size,
             CanConvert(item),
             item.Status is ImageItemStatus.Done,
             true);
@@ -275,13 +269,14 @@ public sealed class ConversionSession(
         public BrowserImageFile File { get; } = file;
         public ImageItemStatus Status { get; set; } = ImageItemStatus.Loading;
         public ImageDocument? Job { get; set; }
-        public ConversionResult? Result { get; set; }
+        public EncodedImage? Encoded { get; set; }
+        public string? OutputFileName { get; set; }
         public string? ErrorMessage { get; set; }
         public string? ThumbnailUrl { get; set; }
 
         public void Dispose()
         {
-            Result?.Stream.Dispose();
+            Encoded?.Stream.Dispose();
             Job?.Dispose();
         }
     }

@@ -12,7 +12,6 @@ builder.RootComponents.Add<App>("#app");
 builder.RootComponents.Add<HeadOutlet>("head::after");
 
 builder.Services.AddSingleton<IFormatCatalog, ImageSharpFormatCatalog>();
-builder.Services.AddSingleton<IImagePreviewBuilder, ImageSharpImagePreviewBuilder>();
 builder.Services.AddSingleton<IImagePackageBuilder, ZipImagePackageBuilder>();
 builder.Services.AddScoped<IConversionSession, ConversionSession>();
 builder.Services.AddMudServices();

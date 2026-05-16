@@ -7,11 +7,10 @@ This app is a Blazor WebAssembly image format converter. Users add image files, 
 - **Conversion Session**: The application workflow boundary for the current browser session. It owns image items, loading/conversion state, target format, encoder settings, batch progress, preview commands, converted-result lookup, removal, clearing, and disposal of session-owned resources.
 - **Blazor Adapter**: Razor components and pages that handle browser events, MudBlazor rendering, `IBrowserFile` mapping, JavaScript download interop, and JS module disposal. Blazor calls application commands and renders snapshots; it should not own image workflow rules.
 - **Image Item**: One uploaded image inside the Conversion Session. The UI sees it as an `ImageItemSnapshot`, not as a mutable image-processing object.
-- **Image Document**: The loaded ImageSharp image plus conversion behavior for one item. This is internal model state and is not exposed to Razor components or command results.
+- **Image Document**: The loaded ImageSharp image plus conversion and preview generation for one item. Internal model state; not exposed to Razor components or command results.
 - **Format Catalog**: The app-level catalog of supported formats. It owns format descriptors, upload accept strings, default target format, output file extensions, and output file naming.
 - **Format ID**: Stable app-level identifier for a supported format, such as `png`, `jpeg`, or `webp`. UI and workflow code use format IDs instead of ImageSharp format objects.
 - **Encoder Settings**: App-level data records edited by Razor option components. Each settings type knows how to build its ImageSharp encoder. The Conversion Session always holds a non-null instance and folds its metadata-skip preference in.
-- **Preview Builder**: The image-work module that creates thumbnail and large-preview data URLs. Cards ask for preview command results; they do not run ImageSharp resize logic.
 - **Package Builder**: The archive module that creates ZIP packages from converted image streams. Browser download remains a Blazor adapter concern.
 - **Snapshot**: Read-only UI state returned by the Conversion Session. Snapshots are safe for rendering and should not expose mutable workflow objects.
 - **Command Result**: A command-specific C# union result that represents expected workflow outcomes, such as success, item not found, item not loaded, empty package, or command failure.
@@ -27,7 +26,7 @@ The Conversion Session owns workflow state and workflow decisions:
 - Invalidating converted results when the target format changes.
 - Converting one image or all eligible images.
 - Reporting batch conversion progress.
-- Creating preview command results through the Preview Builder.
+- Creating preview command results from the Image Document.
 - Opening converted result streams for browser adapters.
 - Building ZIP packages of converted results through the Package Builder.
 - Removing items, clearing the session, and disposing image/result resources.
