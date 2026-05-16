@@ -1,4 +1,5 @@
-using ImageConverter.Models;
+using ImageConverter.Models.Encoding;
+using ImageConverter.Models.Formats;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.Formats.Gif;
@@ -8,7 +9,7 @@ using SixLabors.ImageSharp.Formats.Tiff;
 using SixLabors.ImageSharp.Formats.Tiff.Constants;
 using SixLabors.ImageSharp.Formats.Webp;
 
-namespace ImageConverter.Tests;
+namespace ImageConverter.Tests.Encoding;
 
 public sealed class ImageSharpEncoderFactoryTests
 {

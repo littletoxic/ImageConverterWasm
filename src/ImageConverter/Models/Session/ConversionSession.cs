@@ -1,6 +1,9 @@
+using ImageConverter.Models.Encoding;
+using ImageConverter.Models.Formats;
+using ImageConverter.Models.Imaging;
 using Microsoft.Extensions.Logging;
 
-namespace ImageConverter.Models;
+namespace ImageConverter.Models.Session;
 
 public interface IConversionSession
 {

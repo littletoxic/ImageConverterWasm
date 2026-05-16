@@ -1,6 +1,6 @@
-using ImageConverter.Models;
+using ImageConverter.Models.Formats;
 
-namespace ImageConverter.Tests;
+namespace ImageConverter.Tests.Formats;
 
 public sealed class ImageSharpFormatCatalogTests
 {

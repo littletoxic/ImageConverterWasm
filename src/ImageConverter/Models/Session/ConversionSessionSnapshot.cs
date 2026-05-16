@@ -1,4 +1,6 @@
-namespace ImageConverter.Models;
+using ImageConverter.Models.Formats;
+
+namespace ImageConverter.Models.Session;
 
 public sealed record ConversionSessionSnapshot(
     IReadOnlyList<ImageItemSnapshot> Items,

@@ -1,5 +1,9 @@
 using ImageConverter;
-using ImageConverter.Models;
+using ImageConverter.Models.Encoding;
+using ImageConverter.Models.Formats;
+using ImageConverter.Models.Imaging;
+using ImageConverter.Models.Packaging;
+using ImageConverter.Models.Session;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using MudBlazor.Services;

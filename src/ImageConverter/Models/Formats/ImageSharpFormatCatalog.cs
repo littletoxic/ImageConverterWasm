@@ -1,8 +1,9 @@
+using ImageConverter.Models.Encoding;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Png;
 
-namespace ImageConverter.Models;
+namespace ImageConverter.Models.Formats;
 
 public sealed class ImageSharpFormatCatalog : IFormatCatalog
 {

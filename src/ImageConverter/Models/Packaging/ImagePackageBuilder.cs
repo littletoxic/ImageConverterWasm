@@ -1,6 +1,6 @@
 using System.IO.Compression;
 
-namespace ImageConverter.Models;
+namespace ImageConverter.Models.Packaging;
 
 public interface IImagePackageBuilder
 {

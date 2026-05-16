@@ -1,3 +1,4 @@
+using ImageConverter.Models.Formats;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.Formats.Gif;
@@ -7,7 +8,7 @@ using SixLabors.ImageSharp.Formats.Tiff;
 using SixLabors.ImageSharp.Formats.Tiff.Constants;
 using SixLabors.ImageSharp.Formats.Webp;
 
-namespace ImageConverter.Models;
+namespace ImageConverter.Models.Encoding;
 
 public abstract record EncoderSettings(FormatId FormatId, bool SkipMetadata);
 

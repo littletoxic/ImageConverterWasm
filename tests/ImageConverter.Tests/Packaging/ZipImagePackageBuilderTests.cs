@@ -1,7 +1,7 @@
 using System.IO.Compression;
-using ImageConverter.Models;
+using ImageConverter.Models.Packaging;
 
-namespace ImageConverter.Tests;
+namespace ImageConverter.Tests.Packaging;
 
 public sealed class ZipImagePackageBuilderTests
 {

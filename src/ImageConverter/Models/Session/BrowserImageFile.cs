@@ -1,4 +1,4 @@
-namespace ImageConverter.Models;
+namespace ImageConverter.Models.Session;
 
 public sealed record BrowserImageFile(
     string FileName,

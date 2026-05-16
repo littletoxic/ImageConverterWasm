@@ -1,6 +1,7 @@
+using ImageConverter.Models.Formats;
 using SixLabors.ImageSharp;
 
-namespace ImageConverter.Models;
+namespace ImageConverter.Models.Imaging;
 
 public sealed class ImageDocument(
     string fileName,

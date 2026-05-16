@@ -1,4 +1,4 @@
-namespace ImageConverter.Models;
+namespace ImageConverter.Models.Formats;
 
 public sealed record ImageFormatDescriptor(
     FormatId Id,

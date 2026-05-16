@@ -1,5 +1,6 @@
 using System.Reflection;
-using ImageConverter.Models;
+using ImageConverter.Models.Encoding;
+using ImageConverter.Models.Formats;
 using Microsoft.AspNetCore.Components;
 
 namespace ImageConverter.Components;

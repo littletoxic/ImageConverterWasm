@@ -1,4 +1,4 @@
-namespace ImageConverter.Models;
+namespace ImageConverter.Models.Formats;
 
 public readonly record struct FormatId(string Value)
 {

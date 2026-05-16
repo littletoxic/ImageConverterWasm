@@ -1,9 +1,12 @@
-using ImageConverter.Models;
+using ImageConverter.Models.Encoding;
+using ImageConverter.Models.Formats;
+using ImageConverter.Models.Imaging;
+using ImageConverter.Models.Session;
 using Microsoft.Extensions.Logging.Abstractions;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 
-namespace ImageConverter.Tests;
+namespace ImageConverter.Tests.Session;
 
 public sealed class ConversionSessionTests
 {
