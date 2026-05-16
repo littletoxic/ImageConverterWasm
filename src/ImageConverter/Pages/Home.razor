@@ -109,7 +109,7 @@
                            OnConvert="ConvertSingle"
                            OnDownload="DownloadSingle"
                            OnRemove="RemoveItem"
-                           OnPreview="CreatePreview" />
+                           OnPreview="CreatePreviewAsync" />
             </MudItem>
         }
     </MudGrid>
@@ -224,14 +224,10 @@
         await _jsModule.InvokeVoidAsync("downloadFileFromStream", built.Package.FileName, streamRef);
     }
 
-    private async Task<string?> CreatePreview(Guid itemId)
+    private async Task<CreatePreviewResult> CreatePreviewAsync(Guid itemId)
     {
         await Task.Yield();
-        return Session.CreatePreview(itemId, 1024) switch
-        {
-            CreatePreviewSucceeded preview => preview.DataUrl,
-            _ => null
-        };
+        return Session.CreatePreview(itemId, 1024);
     }
 
     private void RemoveItem(Guid itemId) =>

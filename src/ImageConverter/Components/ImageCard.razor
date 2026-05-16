@@ -89,7 +89,14 @@
             ZIndex="_previewZIndex" Class="d-flex align-center justify-center">
     @if (_previewUrl is null)
     {
-        <MudProgressCircular Indeterminate="true" Color="MudBlazor.Color.Primary" />
+        @if (_previewError is null)
+        {
+            <MudProgressCircular Indeterminate="true" Color="MudBlazor.Color.Primary" />
+        }
+        else
+        {
+            <MudAlert Severity="Severity.Error" Variant="Variant.Filled">@_previewError</MudAlert>
+        }
     }
     else
     {
@@ -106,10 +113,11 @@
     [Parameter] public EventCallback<Guid> OnConvert { get; set; }
     [Parameter] public EventCallback<Guid> OnDownload { get; set; }
     [Parameter] public EventCallback<Guid> OnRemove { get; set; }
-    [Parameter] public Func<Guid, Task<string?>>? OnPreview { get; set; }
+    [Parameter] public Func<Guid, Task<CreatePreviewResult>>? OnPreview { get; set; }
 
     private bool _previewVisible;
     private string? _previewUrl;
+    private string? _previewError;
     private static readonly int _previewZIndex = new ZIndex().Dialog;
 
     private async Task OpenPreview()
@@ -118,9 +126,24 @@
 
         _previewVisible = true;
         _previewUrl = null;
+        _previewError = null;
         StateHasChanged();
 
-        _previewUrl = await OnPreview(Item.Id);
+        switch (await OnPreview(Item.Id))
+        {
+            case CreatePreviewSucceeded preview:
+                _previewUrl = preview.DataUrl;
+                break;
+            case CreatePreviewNotLoaded:
+                _previewError = "预览不可用，图像尚未加载。";
+                break;
+            case CreatePreviewItemNotFound:
+                _previewError = "预览不可用，图像已被移除。";
+                break;
+            case CreatePreviewFailed failed:
+                _previewError = $"预览失败：{failed.Message}";
+                break;
+        }
         StateHasChanged();
     }
 }

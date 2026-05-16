@@ -20,6 +20,7 @@ public interface IConversionSession
 public sealed class ConversionSession(
     IFormatCatalog formatCatalog,
     IImageFormatEncoderFactory encoderFactory,
+    IImagePreviewBuilder previewBuilder,
     ILogger<ConversionSession> logger) : IConversionSession
 {
     private const long MaxFileSize = 50 * 1024 * 1024;
@@ -60,7 +61,7 @@ public sealed class ConversionSession(
             item.Job = new ImageDocument(item.File.FileName, _targetFormatId, formatCatalog);
             await using var stream = item.File.OpenReadStream(MaxFileSize);
             await item.Job.LoadAsync(stream);
-            item.ThumbnailUrl = item.Job.ToThumbnailDataUrl();
+            item.ThumbnailUrl = previewBuilder.CreatePreview(item.Job, ImagePreviewRequest.Thumbnail);
             item.Status = ImageItemStatus.Pending;
             item.ErrorMessage = null;
             return new LoadImageSucceeded(itemId);
@@ -178,7 +179,9 @@ public sealed class ConversionSession(
 
         try
         {
-            return new CreatePreviewSucceeded(itemId, item.Job.ToThumbnailDataUrl(maxSize));
+            return new CreatePreviewSucceeded(
+                itemId,
+                previewBuilder.CreatePreview(item.Job, new ImagePreviewRequest(maxSize)));
         }
         catch (Exception ex)
         {

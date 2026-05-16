@@ -1,6 +1,4 @@
 using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.Formats.Jpeg;
-using SixLabors.ImageSharp.Processing;
 
 namespace ImageConverter.Models;
 
@@ -16,6 +14,7 @@ public sealed class ImageDocument(
     public int Height => _image?.Height ?? 0;
     public bool IsLoaded => _image is not null;
     public FormatId TargetFormatId { get; set; } = targetFormatId;
+    internal Image LoadedImage => _image ?? throw new InvalidOperationException("Image not loaded.");
 
     public async Task LoadAsync(Stream stream)
     {
@@ -34,19 +33,6 @@ public sealed class ImageDocument(
         outputStream.Position = 0;
         var outputFileName = formatCatalog.GetOutputFileName(FileName, TargetFormatId);
         return new ConversionResult(outputStream, outputFileName, outputStream.Length);
-    }
-
-    public string ToThumbnailDataUrl(int maxSize = 320)
-    {
-        if (_image is null)
-            throw new InvalidOperationException("Image not loaded.");
-
-        using var thumbnail = _image.Clone(ctx => ctx.Resize(new ResizeOptions
-        {
-            Size = new Size(maxSize, maxSize),
-            Mode = ResizeMode.Max
-        }));
-        return thumbnail.ToBase64String(JpegFormat.Instance);
     }
 
     public void Dispose()

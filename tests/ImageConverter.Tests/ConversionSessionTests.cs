@@ -63,6 +63,64 @@ public sealed class ConversionSessionTests
     }
 
     [Fact]
+    public async Task CreatePreview_ReturnsPreviewFromPreviewBuilder()
+    {
+        var previewBuilder = new StubPreviewBuilder("data:image/jpeg;base64,preview");
+        var session = CreateSession(previewBuilder: previewBuilder);
+        var sourceBytes = CreatePngBytes(width: 4, height: 5);
+        var itemId = SingleAddedId(session.AddFiles(
+            [new BrowserImageFile("source.png", sourceBytes.Length, _ => new MemoryStream(sourceBytes))]));
+
+        await session.LoadImageAsync(itemId);
+        var result = session.CreatePreview(itemId, 1024);
+
+        var preview = Assert.IsType<CreatePreviewSucceeded>(result.Value);
+        Assert.Equal(itemId, preview.ItemId);
+        Assert.Equal("data:image/jpeg;base64,preview", preview.DataUrl);
+        Assert.Equal([320, 1024], previewBuilder.RequestedSizes);
+    }
+
+    [Fact]
+    public async Task CreatePreview_ReturnsFailedWhenPreviewBuilderFails()
+    {
+        var session = CreateSession(previewBuilder: new ThrowingPreviewBuilder());
+        var sourceBytes = CreatePngBytes(width: 4, height: 5);
+        var itemId = SingleAddedId(session.AddFiles(
+            [new BrowserImageFile("source.png", sourceBytes.Length, _ => new MemoryStream(sourceBytes))]));
+
+        await session.LoadImageAsync(itemId);
+        var result = session.CreatePreview(itemId, 1024);
+
+        var failed = Assert.IsType<CreatePreviewFailed>(result.Value);
+        Assert.Equal(itemId, failed.ItemId);
+        Assert.Equal("preview exploded", failed.Message);
+    }
+
+    [Fact]
+    public void CreatePreview_ReturnsNotLoadedForUnloadedImage()
+    {
+        var session = CreateSession();
+        var sourceBytes = CreatePngBytes(width: 4, height: 5);
+        var itemId = SingleAddedId(session.AddFiles(
+            [new BrowserImageFile("source.png", sourceBytes.Length, _ => new MemoryStream(sourceBytes))]));
+
+        var result = session.CreatePreview(itemId, 1024);
+
+        Assert.IsType<CreatePreviewNotLoaded>(result.Value);
+    }
+
+    [Fact]
+    public void CreatePreview_ReturnsNotFoundForMissingImage()
+    {
+        var session = CreateSession();
+        var itemId = Guid.NewGuid();
+
+        var result = session.CreatePreview(itemId, 1024);
+
+        Assert.Equal(itemId, Assert.IsType<CreatePreviewItemNotFound>(result.Value).ItemId);
+    }
+
+    [Fact]
     public async Task ConvertAll_ProcessesConvertibleItemsAndReportsProgress()
     {
         var session = CreateSession();
@@ -149,12 +207,15 @@ public sealed class ConversionSessionTests
         Assert.StartsWith("加载失败：", item.ErrorMessage);
     }
 
-    private static ConversionSession CreateSession(IImageFormatEncoderFactory? encoderFactory = null)
+    private static ConversionSession CreateSession(
+        IImageFormatEncoderFactory? encoderFactory = null,
+        IImagePreviewBuilder? previewBuilder = null)
     {
         var formatCatalog = new ImageSharpFormatCatalog();
         return new(
             formatCatalog,
             encoderFactory ?? new ImageSharpEncoderFactory(formatCatalog),
+            previewBuilder ?? new ImageSharpImagePreviewBuilder(),
             NullLogger<ConversionSession>.Instance);
     }
 
@@ -185,5 +246,22 @@ public sealed class ConversionSessionTests
     private sealed class StubEncoderFactory(IImageFormatEncoder encoder) : IImageFormatEncoderFactory
     {
         public IImageFormatEncoder Create(FormatId formatId, EncoderSettings? settings) => encoder;
+    }
+
+    private sealed class StubPreviewBuilder(string dataUrl) : IImagePreviewBuilder
+    {
+        public List<int> RequestedSizes { get; } = [];
+
+        public string CreatePreview(ImageDocument document, ImagePreviewRequest request)
+        {
+            RequestedSizes.Add(request.MaxSize);
+            return dataUrl;
+        }
+    }
+
+    private sealed class ThrowingPreviewBuilder : IImagePreviewBuilder
+    {
+        public string CreatePreview(ImageDocument document, ImagePreviewRequest request) =>
+            throw new InvalidOperationException("preview exploded");
     }
 }
