@@ -1,10 +1,10 @@
 @page "/"
 @using SixLabors.ImageSharp.Formats
-@using System.IO.Compression
 @implements IAsyncDisposable
 @inject IJSRuntime JS
 @inject IFormatCatalog FormatCatalog
 @inject IConversionSession Session
+@inject IImagePackageBuilder PackageBuilder
 
 <PageTitle>图像格式转换</PageTitle>
 
@@ -210,28 +210,19 @@
     private async Task DownloadAll()
     {
         if (_jsModule is null) return;
-        var doneItems = Snapshot.Items
+        var entries = Snapshot.Items
             .Where(i => i.CanDownload)
+            .Select(i => Session.OpenConvertedImage(i.Id))
+            .Select(result => result.Value)
+            .OfType<OpenConvertedImageSucceeded>()
+            .Select(download => new ImagePackageEntrySource(download.OutputFileName, download.Stream))
             .ToList();
-        if (doneItems.Count == 0) return;
 
-        var zipStream = new MemoryStream();
-        using (var archive = new ZipArchive(zipStream, ZipArchiveMode.Create, leaveOpen: true))
-        {
-            foreach (var item in doneItems)
-            {
-                if (Session.OpenConvertedImage(item.Id) is not OpenConvertedImageSucceeded download)
-                    continue;
+        if (await PackageBuilder.BuildAsync(entries, "converted-images.zip") is not BuildImagePackageSucceeded built)
+            return;
 
-                var entry = archive.CreateEntry(download.OutputFileName, CompressionLevel.NoCompression);
-                await using var entryStream = entry.Open();
-                await download.Stream.CopyToAsync(entryStream);
-            }
-        }
-
-        zipStream.Position = 0;
-        using var streamRef = new DotNetStreamReference(zipStream);
-        await _jsModule.InvokeVoidAsync("downloadFileFromStream", "converted-images.zip", streamRef);
+        using var streamRef = new DotNetStreamReference(built.Package.Stream);
+        await _jsModule.InvokeVoidAsync("downloadFileFromStream", built.Package.FileName, streamRef);
     }
 
     private async Task<string?> CreatePreview(Guid itemId)
