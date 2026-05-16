@@ -63,12 +63,21 @@ public sealed class ConversionSession(
 
         try
         {
+            var loadSw = System.Diagnostics.Stopwatch.StartNew();
             item.Job = new ImageDocument(item.File.FileName);
             await using var stream = item.File.OpenReadStream(MaxFileSize);
             await item.Job.LoadAsync(stream);
+            loadSw.Stop();
+
+            var thumbSw = System.Diagnostics.Stopwatch.StartNew();
             item.ThumbnailUrl = item.Job.CreatePreview(ImageDocument.ThumbnailMaxSize);
+            thumbSw.Stop();
+
             item.Status = ImageItemStatus.Pending;
             item.ErrorMessage = null;
+            logger.LogInformation("Loaded {FileName} ({Width}x{Height}) in {LoadMs}ms, thumbnail in {ThumbMs}ms",
+                item.File.FileName, item.Job.Width, item.Job.Height,
+                loadSw.ElapsedMilliseconds, thumbSw.ElapsedMilliseconds);
             return new LoadImageSucceeded(itemId);
         }
         catch (Exception ex)
@@ -189,7 +198,12 @@ public sealed class ConversionSession(
 
         try
         {
-            return new CreatePreviewSucceeded(itemId, item.Job.CreatePreview(maxSize));
+            var sw = System.Diagnostics.Stopwatch.StartNew();
+            var dataUrl = item.Job.CreatePreview(maxSize);
+            sw.Stop();
+            logger.LogInformation("Created preview for {FileName} ({MaxSize}px) in {Elapsed}ms",
+                item.File.FileName, maxSize, sw.ElapsedMilliseconds);
+            return new CreatePreviewSucceeded(itemId, dataUrl);
         }
         catch (Exception ex)
         {
