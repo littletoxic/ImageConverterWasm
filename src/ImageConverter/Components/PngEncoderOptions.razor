@@ -4,10 +4,10 @@
 @inherits EncoderOptionsBase
 
 <MudText Typo="Typo.body2" Class="mb-2">压缩级别：@_compressionLevel</MudText>
-<MudSlider T="int" @bind-Value="_compressionLevel" @bind-Value:after="NotifyEncoderChanged"
+<MudSlider T="int" @bind-Value="_compressionLevel" @bind-Value:after="NotifySettingsChanged"
            Min="0" Max="9" Step="1" Color="MudBlazor.Color.Primary" Class="mb-4" />
 
-<MudSelect T="PngColorType?" @bind-Value="_colorType" @bind-Value:after="NotifyEncoderChanged"
+<MudSelect T="PngColorType?" @bind-Value="_colorType" @bind-Value:after="NotifySettingsChanged"
            Label="颜色类型" Variant="Variant.Outlined" Class="mb-4">
     <MudSelectItem T="PngColorType?" Value="@((PngColorType?)null)">自动</MudSelectItem>
     <MudSelectItem T="PngColorType?" Value="PngColorType.Rgb">RGB</MudSelectItem>
@@ -17,7 +17,7 @@
     <MudSelectItem T="PngColorType?" Value="PngColorType.Palette">调色板</MudSelectItem>
 </MudSelect>
 
-<MudSwitch T="bool" @bind-Value="_interlace" @bind-Value:after="NotifyEncoderChanged"
+<MudSwitch T="bool" @bind-Value="_interlace" @bind-Value:after="NotifySettingsChanged"
            Color="MudBlazor.Color.Primary" Class="mb-4"
            Label="Adam7 交错（渐进式加载）" />
 
@@ -30,7 +30,7 @@
             </div>
         </TitleContent>
         <ChildContent>
-        <MudSelect T="PngBitDepth?" @bind-Value="_bitDepth" @bind-Value:after="NotifyEncoderChanged"
+        <MudSelect T="PngBitDepth?" @bind-Value="_bitDepth" @bind-Value:after="NotifySettingsChanged"
                    Label="位深度" Variant="Variant.Outlined" Class="mb-4">
             <MudSelectItem T="PngBitDepth?" Value="@((PngBitDepth?)null)">自动</MudSelectItem>
             <MudSelectItem T="PngBitDepth?" Value="PngBitDepth.Bit1">1 位</MudSelectItem>
@@ -40,7 +40,7 @@
             <MudSelectItem T="PngBitDepth?" Value="PngBitDepth.Bit16">16 位</MudSelectItem>
         </MudSelect>
 
-        <MudSelect T="PngFilterMethod?" @bind-Value="_filterMethod" @bind-Value:after="NotifyEncoderChanged"
+        <MudSelect T="PngFilterMethod?" @bind-Value="_filterMethod" @bind-Value:after="NotifySettingsChanged"
                    Label="滤波方法" Variant="Variant.Outlined" Class="mb-4">
             <MudSelectItem T="PngFilterMethod?" Value="@((PngFilterMethod?)null)">自动</MudSelectItem>
             <MudSelectItem T="PngFilterMethod?" Value="PngFilterMethod.None">None</MudSelectItem>
@@ -51,7 +51,7 @@
             <MudSelectItem T="PngFilterMethod?" Value="PngFilterMethod.Adaptive">Adaptive</MudSelectItem>
         </MudSelect>
 
-        <MudSelect T="TransparentColorMode" @bind-Value="_transparentColorMode" @bind-Value:after="NotifyEncoderChanged"
+        <MudSelect T="TransparentColorMode" @bind-Value="_transparentColorMode" @bind-Value:after="NotifySettingsChanged"
                    Label="透明色处理" Variant="Variant.Outlined" Class="mb-4">
             <MudSelectItem T="TransparentColorMode" Value="TransparentColorMode.Preserve">保留</MudSelectItem>
             <MudSelectItem T="TransparentColorMode" Value="TransparentColorMode.Clear">清除为透明黑</MudSelectItem>
@@ -68,15 +68,13 @@
     private PngFilterMethod? _filterMethod;
     private TransparentColorMode _transparentColorMode = TransparentColorMode.Preserve;
 
-    protected override IImageEncoder BuildEncoder() =>
-        new PngEncoder
-        {
-            CompressionLevel = (PngCompressionLevel)_compressionLevel,
-            ColorType = _colorType,
-            InterlaceMethod = _interlace ? PngInterlaceMode.Adam7 : PngInterlaceMode.None,
-            BitDepth = _bitDepth,
-            FilterMethod = _filterMethod,
-            TransparentColorMode = _transparentColorMode,
-            SkipMetadata = SkipMetadata
-        };
+    protected override EncoderSettings BuildSettings() =>
+        new PngEncoderSettings(
+            _compressionLevel,
+            _colorType,
+            _interlace,
+            _bitDepth,
+            _filterMethod,
+            _transparentColorMode,
+            SkipMetadata);
 }

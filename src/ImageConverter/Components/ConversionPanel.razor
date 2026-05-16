@@ -1,5 +1,3 @@
-@using SixLabors.ImageSharp.Formats
-
 <MudPaper Class="@($"pa-4 {Class}")" Elevation="2">
     <MudText Typo="Typo.h6" GutterBottom="true">转换设置</MudText>
 
@@ -32,7 +30,7 @@
     [Parameter] public IReadOnlyList<ImageFormatDescriptor> Formats { get; set; } = [];
     [Parameter] public ImageFormatDescriptor TargetFormat { get; set; } = default!;
     [Parameter] public EventCallback<ImageFormatDescriptor> TargetFormatChanged { get; set; }
-    [Parameter] public EventCallback<IImageEncoder> EncoderChanged { get; set; }
+    [Parameter] public EventCallback<EncoderSettings> EncoderSettingsChanged { get; set; }
     [Parameter] public string? Class { get; set; }
 
     private bool _stripMetadata;
@@ -42,9 +40,9 @@
     {
         _encoderParams = new Dictionary<string, object>
         {
-            [nameof(EncoderOptionsBase.EncoderChanged)] =
-                EventCallback.Factory.Create<IImageEncoder>(this,
-                    encoder => EncoderChanged.InvokeAsync(encoder)),
+            [nameof(EncoderOptionsBase.EncoderSettingsChanged)] =
+                EventCallback.Factory.Create<EncoderSettings>(this,
+                    settings => EncoderSettingsChanged.InvokeAsync(settings)),
             [nameof(EncoderOptionsBase.SkipMetadata)] = _stripMetadata,
         };
     }

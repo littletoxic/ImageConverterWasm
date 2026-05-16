@@ -8,7 +8,7 @@ public interface IConversionSession
     AddFilesResult AddFiles(IReadOnlyList<BrowserImageFile> files);
     Task<LoadImageResult> LoadImageAsync(Guid itemId);
     void SetTargetFormat(FormatId formatId);
-    void UpdateEncoder(IImageFormatEncoder? encoder);
+    void UpdateEncoderSettings(EncoderSettings? settings);
     Task<ConvertImageResult> ConvertImageAsync(Guid itemId);
     Task<ConvertAllResult> ConvertAllAsync(Action? progressChanged = null);
     CreatePreviewResult CreatePreview(Guid itemId, int maxSize);
@@ -19,13 +19,14 @@ public interface IConversionSession
 
 public sealed class ConversionSession(
     IFormatCatalog formatCatalog,
+    IImageFormatEncoderFactory encoderFactory,
     ILogger<ConversionSession> logger) : IConversionSession
 {
     private const long MaxFileSize = 50 * 1024 * 1024;
 
     private readonly List<SessionImageItem> _items = [];
     private FormatId _targetFormatId = formatCatalog.DefaultTargetFormat.Id;
-    private IImageFormatEncoder? _encoder;
+    private EncoderSettings? _encoderSettings;
     private BatchConversionSnapshot _batch = new(false, 0, 0);
 
     public ConversionSessionSnapshot Snapshot => new(
@@ -76,7 +77,7 @@ public sealed class ConversionSession(
     public void SetTargetFormat(FormatId formatId)
     {
         _targetFormatId = formatId;
-        _encoder = null;
+        _encoderSettings = null;
 
         foreach (var item in _items)
         {
@@ -92,8 +93,8 @@ public sealed class ConversionSession(
         }
     }
 
-    public void UpdateEncoder(IImageFormatEncoder? encoder) =>
-        _encoder = encoder;
+    public void UpdateEncoderSettings(EncoderSettings? settings) =>
+        _encoderSettings = settings;
 
     public async Task<ConvertImageResult> ConvertImageAsync(Guid itemId)
     {
@@ -112,7 +113,8 @@ public sealed class ConversionSession(
         {
             item.Job.TargetFormatId = _targetFormatId;
             var sw = System.Diagnostics.Stopwatch.StartNew();
-            var result = await item.Job.ConvertAsync(_encoder);
+            var encoder = encoderFactory.Create(_targetFormatId, _encoderSettings);
+            var result = await item.Job.ConvertAsync(encoder);
             sw.Stop();
 
             logger.LogInformation("Converted {FileName} to {Format} in {Elapsed}ms ({Size})",

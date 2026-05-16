@@ -1,5 +1,4 @@
 @page "/"
-@using SixLabors.ImageSharp.Formats
 @implements IAsyncDisposable
 @inject IJSRuntime JS
 @inject IFormatCatalog FormatCatalog
@@ -51,7 +50,7 @@
     <ConversionPanel @bind-TargetFormat="_targetFormat"
                      Formats="FormatCatalog.EncodableFormats"
                      @bind-TargetFormat:after="OnTargetFormatChanged"
-                     EncoderChanged="OnEncoderChanged"
+                     EncoderSettingsChanged="OnEncoderSettingsChanged"
                      Class="mb-4" />
 
     @* Batch Action Toolbar *@
@@ -180,8 +179,8 @@
         Session.SetTargetFormat(_targetFormat.Id);
     }
 
-    private void OnEncoderChanged(IImageEncoder encoder) =>
-        Session.UpdateEncoder(new ImageSharpCustomEncoder(encoder));
+    private void OnEncoderSettingsChanged(EncoderSettings settings) =>
+        Session.UpdateEncoderSettings(settings);
 
     private async Task ConvertSingle(Guid itemId)
     {

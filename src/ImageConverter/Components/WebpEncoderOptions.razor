@@ -3,12 +3,12 @@
 @attribute [FormatEncoder(KnownFormatIds.Webp)]
 @inherits EncoderOptionsBase
 
-<MudSwitch T="bool" @bind-Value="_lossless" @bind-Value:after="NotifyEncoderChanged"
+<MudSwitch T="bool" @bind-Value="_lossless" @bind-Value:after="NotifySettingsChanged"
            Color="MudBlazor.Color.Primary" Class="mb-2"
            Label="@(_lossless ? "无损模式（内存占用更高）" : "有损模式")" />
 
 <MudText Typo="Typo.body2" Class="mb-2">@(_lossless ? "压缩努力程度" : "WebP 质量")：@_quality</MudText>
-<MudSlider T="int" @bind-Value="_quality" @bind-Value:after="NotifyEncoderChanged"
+<MudSlider T="int" @bind-Value="_quality" @bind-Value:after="NotifySettingsChanged"
            Min="0" Max="100" Step="1" Color="MudBlazor.Color.Primary" Class="mb-4" />
 
 <MudExpansionPanels Elevation="0" Dense="true" Class="mb-2 border-solid border rounded mud-border-primary">
@@ -21,28 +21,28 @@
         </TitleContent>
         <ChildContent>
         <MudText Typo="Typo.body2" Class="mb-2">压缩方法（0=最快，6=最慢最小）：@_method</MudText>
-        <MudSlider T="int" @bind-Value="_method" @bind-Value:after="NotifyEncoderChanged"
+        <MudSlider T="int" @bind-Value="_method" @bind-Value:after="NotifySettingsChanged"
                    Min="0" Max="6" Step="1" Color="MudBlazor.Color.Primary" Class="mb-4" />
 
         <MudText Typo="Typo.body2" Class="mb-2">去块滤波强度：@_filterStrength</MudText>
-        <MudSlider T="int" @bind-Value="_filterStrength" @bind-Value:after="NotifyEncoderChanged"
+        <MudSlider T="int" @bind-Value="_filterStrength" @bind-Value:after="NotifySettingsChanged"
                    Min="0" Max="100" Step="1" Color="MudBlazor.Color.Primary" Class="mb-4" />
 
         @if (_lossless)
         {
-            <MudSwitch T="bool" @bind-Value="_nearLossless" @bind-Value:after="NotifyEncoderChanged"
+            <MudSwitch T="bool" @bind-Value="_nearLossless" @bind-Value:after="NotifySettingsChanged"
                        Color="MudBlazor.Color.Primary" Class="mb-2"
                        Label="近似无损" />
 
             @if (_nearLossless)
             {
                 <MudText Typo="Typo.body2" Class="mb-2">近似无损质量：@_nearLosslessQuality</MudText>
-                <MudSlider T="int" @bind-Value="_nearLosslessQuality" @bind-Value:after="NotifyEncoderChanged"
+                <MudSlider T="int" @bind-Value="_nearLosslessQuality" @bind-Value:after="NotifySettingsChanged"
                            Min="0" Max="100" Step="1" Color="MudBlazor.Color.Primary" Class="mb-4" />
             }
         }
 
-        <MudSelect T="TransparentColorMode" @bind-Value="_transparentColorMode" @bind-Value:after="NotifyEncoderChanged"
+        <MudSelect T="TransparentColorMode" @bind-Value="_transparentColorMode" @bind-Value:after="NotifySettingsChanged"
                    Label="透明色处理" Variant="Variant.Outlined" Class="mb-4">
             <MudSelectItem T="TransparentColorMode" Value="TransparentColorMode.Preserve">保留</MudSelectItem>
             <MudSelectItem T="TransparentColorMode" Value="TransparentColorMode.Clear">清除</MudSelectItem>
@@ -60,16 +60,14 @@
     private int _nearLosslessQuality = 60;
     private TransparentColorMode _transparentColorMode = TransparentColorMode.Preserve;
 
-    protected override IImageEncoder BuildEncoder() =>
-        new WebpEncoder
-        {
-            FileFormat = _lossless ? WebpFileFormatType.Lossless : WebpFileFormatType.Lossy,
-            Quality = _quality,
-            Method = (WebpEncodingMethod)_method,
-            FilterStrength = _filterStrength,
-            NearLossless = _nearLossless,
-            NearLosslessQuality = _nearLosslessQuality,
-            TransparentColorMode = _transparentColorMode,
-            SkipMetadata = SkipMetadata
-        };
+    protected override EncoderSettings BuildSettings() =>
+        new WebpEncoderSettings(
+            _quality,
+            _lossless,
+            _method,
+            _filterStrength,
+            _nearLossless,
+            _nearLosslessQuality,
+            _transparentColorMode,
+            SkipMetadata);
 }

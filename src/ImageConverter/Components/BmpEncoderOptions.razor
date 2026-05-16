@@ -1,9 +1,8 @@
-@using SixLabors.ImageSharp.Formats
 @using SixLabors.ImageSharp.Formats.Bmp
 @attribute [FormatEncoder(KnownFormatIds.Bmp)]
 @inherits EncoderOptionsBase
 
-<MudSelect T="BmpBitsPerPixel?" @bind-Value="_bitsPerPixel" @bind-Value:after="NotifyEncoderChanged"
+<MudSelect T="BmpBitsPerPixel?" @bind-Value="_bitsPerPixel" @bind-Value:after="NotifySettingsChanged"
            Label="位深度" Variant="Variant.Outlined" Class="mb-4">
     <MudSelectItem T="BmpBitsPerPixel?" Value="@((BmpBitsPerPixel?)null)">自动</MudSelectItem>
     <MudSelectItem T="BmpBitsPerPixel?" Value="BmpBitsPerPixel.Bit8">8 位（256 色）</MudSelectItem>
@@ -12,7 +11,7 @@
     <MudSelectItem T="BmpBitsPerPixel?" Value="BmpBitsPerPixel.Bit32">32 位</MudSelectItem>
 </MudSelect>
 
-<MudSwitch T="bool" @bind-Value="_supportTransparency" @bind-Value:after="NotifyEncoderChanged"
+<MudSwitch T="bool" @bind-Value="_supportTransparency" @bind-Value:after="NotifySettingsChanged"
            Color="MudBlazor.Color.Primary"
            Label="支持透明（仅 32 位）" />
 
@@ -20,11 +19,6 @@
     private BmpBitsPerPixel? _bitsPerPixel;
     private bool _supportTransparency;
 
-    protected override IImageEncoder BuildEncoder() =>
-        new BmpEncoder
-        {
-            BitsPerPixel = _bitsPerPixel,
-            SupportTransparency = _supportTransparency,
-            SkipMetadata = SkipMetadata
-        };
+    protected override EncoderSettings BuildSettings() =>
+        new BmpEncoderSettings(_bitsPerPixel, _supportTransparency, SkipMetadata);
 }

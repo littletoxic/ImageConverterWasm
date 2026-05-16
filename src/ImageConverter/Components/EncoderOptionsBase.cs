@@ -1,7 +1,6 @@
 using System.Reflection;
 using ImageConverter.Models;
 using Microsoft.AspNetCore.Components;
-using SixLabors.ImageSharp.Formats;
 
 namespace ImageConverter.Components;
 
@@ -13,13 +12,13 @@ public sealed class FormatEncoderAttribute(string formatId) : Attribute
 
 public abstract class EncoderOptionsBase : ComponentBase
 {
-    [Parameter] public EventCallback<IImageEncoder> EncoderChanged { get; set; }
+    [Parameter] public EventCallback<EncoderSettings> EncoderSettingsChanged { get; set; }
     [Parameter] public bool SkipMetadata { get; set; }
 
-    protected abstract IImageEncoder BuildEncoder();
+    protected abstract EncoderSettings BuildSettings();
 
-    protected Task NotifyEncoderChanged() =>
-        EncoderChanged.InvokeAsync(BuildEncoder());
+    protected Task NotifySettingsChanged() =>
+        EncoderSettingsChanged.InvokeAsync(BuildSettings());
 
     private bool _initialized;
     private bool _lastSkipMetadata;
@@ -30,7 +29,7 @@ public abstract class EncoderOptionsBase : ComponentBase
         {
             _initialized = true;
             _lastSkipMetadata = SkipMetadata;
-            await NotifyEncoderChanged();
+            await NotifySettingsChanged();
         }
     }
 
@@ -39,7 +38,7 @@ public abstract class EncoderOptionsBase : ComponentBase
         if (_initialized && SkipMetadata != _lastSkipMetadata)
         {
             _lastSkipMetadata = SkipMetadata;
-            await NotifyEncoderChanged();
+            await NotifySettingsChanged();
         }
     }
 

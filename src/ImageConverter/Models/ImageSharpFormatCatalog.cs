@@ -82,9 +82,4 @@ public sealed class ImageSharpFormatCatalog : IFormatCatalog
         string Name,
         IReadOnlyList<string> FileExtensions);
 
-    private sealed class ImageSharpFormatEncoder(IImageEncoder inner) : IImageFormatEncoder
-    {
-        public Task SaveAsync(Image image, Stream stream) =>
-            image.SaveAsync(stream, inner);
-    }
 }

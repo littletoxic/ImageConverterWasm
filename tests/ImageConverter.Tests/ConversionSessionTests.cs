@@ -10,7 +10,8 @@ public sealed class ConversionSessionTests
     [Fact]
     public async Task LoadAndConvertSingleImage_UpdatesSnapshotStates()
     {
-        var session = CreateSession();
+        var conversionGate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var session = CreateSession(new StubEncoderFactory(new DelayedPngEncoder(conversionGate.Task)));
         var sourceBytes = CreatePngBytes(width: 2, height: 3);
 
         var itemId = SingleAddedId(session.AddFiles(
@@ -30,8 +31,6 @@ public sealed class ConversionSessionTests
         Assert.NotNull(loadedItem.ThumbnailUrl);
         Assert.True(loadedItem.CanConvert);
 
-        var conversionGate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        session.UpdateEncoder(new DelayedPngEncoder(conversionGate.Task));
         var convertTask = session.ConvertImageAsync(itemId);
         Assert.Equal(ImageItemStatus.Converting, Assert.Single(session.Snapshot.Items).Status);
         conversionGate.SetResult();
@@ -150,8 +149,14 @@ public sealed class ConversionSessionTests
         Assert.StartsWith("加载失败：", item.ErrorMessage);
     }
 
-    private static ConversionSession CreateSession() =>
-        new(new ImageSharpFormatCatalog(), NullLogger<ConversionSession>.Instance);
+    private static ConversionSession CreateSession(IImageFormatEncoderFactory? encoderFactory = null)
+    {
+        var formatCatalog = new ImageSharpFormatCatalog();
+        return new(
+            formatCatalog,
+            encoderFactory ?? new ImageSharpEncoderFactory(formatCatalog),
+            NullLogger<ConversionSession>.Instance);
+    }
 
     private static Guid AddLoadedImage(ConversionSession session, string fileName, byte[] bytes) =>
         SingleAddedId(session.AddFiles(
@@ -175,5 +180,10 @@ public sealed class ConversionSessionTests
             await gate;
             await image.SaveAsPngAsync(stream);
         }
+    }
+
+    private sealed class StubEncoderFactory(IImageFormatEncoder encoder) : IImageFormatEncoderFactory
+    {
+        public IImageFormatEncoder Create(FormatId formatId, EncoderSettings? settings) => encoder;
     }
 }

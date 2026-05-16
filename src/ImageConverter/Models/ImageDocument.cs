@@ -23,15 +23,13 @@ public sealed class ImageDocument(
         _image = await Image.LoadAsync(stream);
     }
 
-    public async Task<ConversionResult> ConvertAsync(IImageFormatEncoder? encoder)
+    public async Task<ConversionResult> ConvertAsync(IImageFormatEncoder encoder)
     {
         if (_image is null)
             throw new InvalidOperationException("Image not loaded.");
 
-        var formatEncoder = encoder ?? formatCatalog.GetEncoder(TargetFormatId);
-
         var outputStream = new MemoryStream();
-        await formatEncoder.SaveAsync(_image, outputStream);
+        await encoder.SaveAsync(_image, outputStream);
 
         outputStream.Position = 0;
         var outputFileName = formatCatalog.GetOutputFileName(FileName, TargetFormatId);

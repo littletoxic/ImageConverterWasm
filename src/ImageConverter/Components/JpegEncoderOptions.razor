@@ -1,10 +1,9 @@
-@using SixLabors.ImageSharp.Formats
 @using SixLabors.ImageSharp.Formats.Jpeg
 @attribute [FormatEncoder(KnownFormatIds.Jpeg)]
 @inherits EncoderOptionsBase
 
 <MudText Typo="Typo.body2" Class="mb-2">JPEG 质量：@_quality</MudText>
-<MudSlider T="int" @bind-Value="_quality" @bind-Value:after="NotifyEncoderChanged"
+<MudSlider T="int" @bind-Value="_quality" @bind-Value:after="NotifySettingsChanged"
            Min="1" Max="100" Step="1" Color="MudBlazor.Color.Primary" Class="mb-4" />
 
 <MudExpansionPanels Elevation="0" Dense="true" Class="mb-2 border-solid border rounded mud-border-primary">
@@ -16,7 +15,7 @@
             </div>
         </TitleContent>
         <ChildContent>
-        <MudSelect T="JpegColorType?" @bind-Value="_colorType" @bind-Value:after="NotifyEncoderChanged"
+        <MudSelect T="JpegColorType?" @bind-Value="_colorType" @bind-Value:after="NotifySettingsChanged"
                    Label="色彩编码" Variant="Variant.Outlined" Class="mb-4">
             <MudSelectItem T="JpegColorType?" Value="@((JpegColorType?)null)">自动</MudSelectItem>
             <MudSelectItem T="JpegColorType?" Value="JpegColorType.YCbCrRatio444">YCbCr 4:4:4（高质量）</MudSelectItem>
@@ -32,11 +31,6 @@
     private int _quality = 90;
     private JpegColorType? _colorType;
 
-    protected override IImageEncoder BuildEncoder() =>
-        new JpegEncoder
-        {
-            Quality = _quality,
-            ColorType = _colorType,
-            SkipMetadata = SkipMetadata
-        };
+    protected override EncoderSettings BuildSettings() =>
+        new JpegEncoderSettings(_quality, _colorType, SkipMetadata);
 }
