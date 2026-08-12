@@ -128,7 +128,6 @@
         _previewVisible = true;
         _previewUrl = null;
         _previewError = null;
-        StateHasChanged();
 
         switch (await OnPreview(Item.Id))
         {
@@ -145,6 +144,5 @@
                 _previewError = $"预览失败：{failed.Message}";
                 break;
         }
-        StateHasChanged();
     }
 }

@@ -1,6 +1,7 @@
 @page "/"
 @implements IAsyncDisposable
 @inject IJSRuntime JS
+@inject ILogger<Home> Logger
 @inject IFormatCatalog FormatCatalog
 @inject IConversionSession Session
 
@@ -150,8 +151,15 @@
     {
         if (firstRender)
         {
-            _jsModule = await JS.InvokeAsync<IJSObjectReference>(
-                "import", "./Pages/Home.razor.js");
+            try
+            {
+                _jsModule = await JS.InvokeAsync<IJSObjectReference>(
+                    "import", "./Pages/Home.razor.js");
+            }
+            catch (JSException ex)
+            {
+                Logger.LogError(ex, "Failed to import the download JavaScript module");
+            }
         }
     }
 
@@ -191,10 +199,7 @@
 
     private async Task ConvertSingle(Guid itemId)
     {
-        var convertTask = Session.ConvertImageAsync(itemId);
-        StateHasChanged();
-        await convertTask;
-        StateHasChanged();
+        await Session.ConvertImageAsync(itemId);
     }
 
     private async Task ConvertAll()
@@ -209,8 +214,15 @@
             return;
 
         using var streamRef = new DotNetStreamReference(download.Stream, leaveOpen: true);
-        await _jsModule.InvokeVoidAsync("downloadFileFromStream",
-            download.OutputFileName, streamRef);
+        try
+        {
+            await _jsModule.InvokeVoidAsync("downloadFileFromStream",
+                download.OutputFileName, streamRef);
+        }
+        catch (JSException ex)
+        {
+            Logger.LogError(ex, "Failed to download {FileName}", download.OutputFileName);
+        }
     }
 
     private async Task DownloadAll()
@@ -220,7 +232,14 @@
             return;
 
         using var streamRef = new DotNetStreamReference(built.Stream);
-        await _jsModule.InvokeVoidAsync("downloadFileFromStream", built.FileName, streamRef);
+        try
+        {
+            await _jsModule.InvokeVoidAsync("downloadFileFromStream", built.FileName, streamRef);
+        }
+        catch (JSException ex)
+        {
+            Logger.LogError(ex, "Failed to download {FileName}", built.FileName);
+        }
     }
 
     private async Task<CreatePreviewResult> CreatePreviewAsync(Guid itemId)

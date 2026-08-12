@@ -18,10 +18,12 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="11.0.0-preview.5.26302.115" />
-    <PackageReference Include="Microsoft.AspNetCore.Components.Gateway" Version="11.0.0-preview.5.26302.115" PrivateAssets="all" />
-    <PackageReference Include="MudBlazor" Version="9.6.0" />
-    <PackageReference Include="SixLabors.ImageSharp" Version="4.0.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="11.0.0-preview.7.26381.103" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.Gateway" Version="11.0.0-preview.7.26381.103" PrivateAssets="all" />
+    <!-- Keep the implementation aligned with the .NET 11 preview assemblies pulled in by Blazor. Remove after MudBlazor targets .NET 11. -->
+    <PackageReference Include="Microsoft.Extensions.Localization" Version="11.0.0-preview.7.26381.103" />
+    <PackageReference Include="MudBlazor" Version="9.8.0" />
+    <PackageReference Include="SixLabors.ImageSharp" Version="4.1.0" />
   </ItemGroup>
 
 </Project>
